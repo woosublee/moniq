@@ -5,6 +5,7 @@ import type {
   TransactionFilters,
   TransactionRecord,
 } from "@/features/transactions/types";
+import { serverEnv } from "@/lib/server-env";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const getRecentTransactions = cache(
@@ -13,8 +14,9 @@ export const getRecentTransactions = cache(
     let request = supabase
       .from("transactions")
       .select(
-        "id, occurred_at, merchant_name, amount, actual_amount, benefit_label, benefit_amount, final_amount, eligible_spend_amount, is_performance_eligible, payment_method, ledger_category, is_fixed_cost, user_card_id, memo, user_cards(id, alias, is_default, card_id, card:cards(id, issuer, name, card_type, network, annual_fee, image_url, searchable_text, created_at))",
+        "id, owner_id, occurred_at, merchant_name, amount, actual_amount, benefit_label, benefit_amount, final_amount, eligible_spend_amount, is_performance_eligible, payment_method, ledger_category, is_fixed_cost, user_card_id, memo, user_cards(id, owner_id, alias, is_default, card_id, card:cards(id, issuer, name, card_type, network, annual_fee, image_url, searchable_text, created_at))",
       )
+      .eq("owner_id", serverEnv.moniqOwnerId)
       .order("occurred_at", { ascending: false })
       .limit(50);
 
@@ -40,7 +42,7 @@ export const getRecentTransactions = cache(
       throw new Error(error.message);
     }
 
-    return (data ?? []) as TransactionRecord[];
+    return (data ?? []) as unknown as TransactionRecord[];
   },
 );
 
@@ -70,15 +72,16 @@ export const getUserCards = cache(async (): Promise<UserCardRecord[]> => {
   const { data, error } = await supabase
     .from("user_cards")
     .select(
-      "id, alias, is_default, created_at, card_id, card:cards(id, issuer, name, card_type, network, annual_fee, image_url, searchable_text, created_at)",
+      "id, owner_id, alias, is_default, created_at, card_id, card:cards(id, issuer, name, card_type, network, annual_fee, image_url, searchable_text, created_at)",
     )
+    .eq("owner_id", serverEnv.moniqOwnerId)
     .order("created_at", { ascending: false });
 
   if (error) {
     throw new Error(error.message);
   }
 
-  return (data ?? []) as UserCardRecord[];
+  return (data ?? []) as unknown as UserCardRecord[];
 });
 
 export const getDefaultUserCard = cache(async () => {
@@ -86,8 +89,9 @@ export const getDefaultUserCard = cache(async () => {
   const { data, error } = await supabase
     .from("user_cards")
     .select(
-      "id, alias, is_default, created_at, card_id, card:cards(id, issuer, name, card_type, network, annual_fee, image_url, searchable_text, created_at)",
+      "id, owner_id, alias, is_default, created_at, card_id, card:cards(id, issuer, name, card_type, network, annual_fee, image_url, searchable_text, created_at)",
     )
+    .eq("owner_id", serverEnv.moniqOwnerId)
     .eq("is_default", true)
     .maybeSingle();
 
@@ -95,5 +99,5 @@ export const getDefaultUserCard = cache(async () => {
     throw new Error(error.message);
   }
 
-  return data as UserCardRecord | null;
+  return data as unknown as UserCardRecord | null;
 });

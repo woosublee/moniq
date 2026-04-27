@@ -1,6 +1,9 @@
 import { z } from "zod";
 
-import type { TransactionInput } from "@/features/transactions/types";
+import type {
+  PaymentMethod,
+  TransactionInput,
+} from "@/features/transactions/types";
 
 const paymentMethodSchema = z.enum([
   "cash",
@@ -22,20 +25,20 @@ export const transactionInputSchema = z
       .min(1, "사용처를 입력해 주세요.")
       .max(80, "사용처는 80자 이하로 입력해 주세요."),
     amount: z
-      .number({ invalid_type_error: "금액을 숫자로 입력해 주세요." })
+      .number("금액을 숫자로 입력해 주세요.")
       .finite("금액 형식이 올바르지 않습니다.")
       .positive("금액은 0보다 커야 합니다."),
     actualAmount: z
-      .number({ invalid_type_error: "실 사용 금액을 숫자로 입력해 주세요." })
+      .number("실 사용 금액을 숫자로 입력해 주세요.")
       .finite("실 사용 금액 형식이 올바르지 않습니다.")
       .positive("실 사용 금액은 0보다 커야 합니다."),
     benefitLabel: z.string().trim().max(120, "혜택 라벨은 120자 이하로 입력해 주세요."),
     benefitAmount: z
-      .number({ invalid_type_error: "혜택 금액을 숫자로 입력해 주세요." })
+      .number("혜택 금액을 숫자로 입력해 주세요.")
       .finite("혜택 금액 형식이 올바르지 않습니다.")
       .min(0, "혜택 금액은 0 이상이어야 합니다."),
     finalAmount: z
-      .number({ invalid_type_error: "최종 금액을 숫자로 입력해 주세요." })
+      .number("최종 금액을 숫자로 입력해 주세요.")
       .finite("최종 금액 형식이 올바르지 않습니다.")
       .min(0, "최종 금액은 0 이상이어야 합니다."),
     paymentMethod: paymentMethodSchema,
@@ -87,13 +90,13 @@ export const parseTransactionInput = (raw: {
     benefitLabel: String(raw.benefitLabel ?? "").trim(),
     benefitAmount,
     finalAmount,
-    paymentMethod: raw.paymentMethod,
+    paymentMethod: raw.paymentMethod as PaymentMethod,
     userCardId: String(raw.userCardId ?? "").trim() || null,
     isPerformanceEligible: parseBoolean(raw.isPerformanceEligible),
     ledgerCategory: String(raw.ledgerCategory ?? "").trim(),
     isFixedCost: parseBoolean(raw.isFixedCost),
     memo: String(raw.memo ?? "").trim(),
-  };
+  } satisfies TransactionInput;
 
-  return transactionInputSchema.safeParse(input satisfies TransactionInput);
+  return transactionInputSchema.safeParse(input);
 };

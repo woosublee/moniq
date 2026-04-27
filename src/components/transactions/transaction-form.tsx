@@ -5,7 +5,10 @@ import { useActionState, useEffect } from "react";
 import { SubmitButton } from "@/components/transactions/submit-button";
 import { createTransaction } from "@/app/transactions/new/actions";
 import type { UserCardRecord } from "@/features/cards/types";
-import type { TransactionRecord } from "@/features/transactions/types";
+import type {
+  TransactionFormState,
+  TransactionRecord,
+} from "@/features/transactions/types";
 import {
   initialTransactionFormState,
   paymentMethodOptions,

@@ -19,6 +19,7 @@ export type TransactionInput = {
 };
 
 export type TransactionInsert = {
+  owner_id: string;
   occurred_at: string;
   merchant_name: string;
   amount: number;
@@ -43,6 +44,7 @@ export type TransactionFormState = {
 
 export type TransactionRecord = {
   id: string;
+  owner_id: string;
   occurred_at: string;
   merchant_name: string;
   amount: number | string;

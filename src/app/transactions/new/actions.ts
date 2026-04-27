@@ -6,6 +6,7 @@ import { initialTransactionFormState } from "@/features/transactions/constants";
 import { toTransactionInsert } from "@/features/transactions/mappers";
 import type { TransactionFormState } from "@/features/transactions/types";
 import { parseTransactionInput } from "@/features/transactions/validation";
+import { serverEnv } from "@/lib/server-env";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const revalidateTransactions = () => {
@@ -42,7 +43,7 @@ export async function createTransaction(
 
   try {
     const supabase = createSupabaseServerClient();
-    const payload = toTransactionInsert(parsed.data);
+    const payload = toTransactionInsert(serverEnv.moniqOwnerId, parsed.data);
     const { error } = await supabase.from("transactions").insert(payload);
 
     if (error) {
@@ -101,11 +102,12 @@ export async function updateTransaction(
 
   try {
     const supabase = createSupabaseServerClient();
-    const payload = toTransactionInsert(parsed.data);
+    const payload = toTransactionInsert(serverEnv.moniqOwnerId, parsed.data);
     const { error } = await supabase
       .from("transactions")
       .update(payload)
-      .eq("id", transactionId);
+      .eq("id", transactionId)
+      .eq("owner_id", serverEnv.moniqOwnerId);
 
     if (error) {
       return {
@@ -137,7 +139,8 @@ export async function deleteTransaction(transactionId: string) {
   const { error } = await supabase
     .from("transactions")
     .delete()
-    .eq("id", transactionId);
+    .eq("id", transactionId)
+    .eq("owner_id", serverEnv.moniqOwnerId);
 
   if (error) {
     throw new Error(error.message);

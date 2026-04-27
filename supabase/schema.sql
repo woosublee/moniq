@@ -14,17 +14,23 @@ create table if not exists public.cards (
 
 create table if not exists public.user_cards (
   id uuid primary key default gen_random_uuid(),
+  owner_id uuid not null default '00000000-0000-0000-0000-000000000001',
   card_id uuid not null references public.cards(id) on delete cascade,
   alias text,
   is_default boolean not null default false,
   created_at timestamptz not null default now()
 );
 
-create unique index if not exists user_cards_card_id_unique
-  on public.user_cards(card_id);
+create unique index if not exists user_cards_owner_id_card_id_unique
+  on public.user_cards(owner_id, card_id);
+
+create unique index if not exists user_cards_single_default_per_owner
+  on public.user_cards(owner_id)
+  where is_default;
 
 create table if not exists public.transactions (
   id uuid primary key default gen_random_uuid(),
+  owner_id uuid not null default '00000000-0000-0000-0000-000000000001',
   occurred_at timestamptz not null,
   merchant_name text not null,
   amount numeric(12, 2) not null check (amount > 0),
@@ -47,3 +53,9 @@ create table if not exists public.transactions (
 alter table public.cards enable row level security;
 alter table public.user_cards enable row level security;
 alter table public.transactions enable row level security;
+
+create policy "allow anon select cards"
+  on public.cards
+  for select
+  to anon
+  using (true);

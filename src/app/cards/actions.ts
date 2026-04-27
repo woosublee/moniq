@@ -6,6 +6,7 @@ import { initialUserCardFormState } from "@/features/cards/constants";
 import { toUserCardInsert } from "@/features/cards/mappers";
 import type { UserCardFormState } from "@/features/cards/types";
 import { registerUserCardSchema } from "@/features/cards/validation";
+import { serverEnv } from "@/lib/server-env";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function registerUserCard(
@@ -28,11 +29,13 @@ export async function registerUserCard(
     const supabase = createSupabaseServerClient();
     const { count } = await supabase
       .from("user_cards")
-      .select("id", { count: "exact", head: true });
+      .select("id", { count: "exact", head: true })
+      .eq("owner_id", serverEnv.moniqOwnerId);
 
     const { data: existingCard, error: existingCardError } = await supabase
       .from("user_cards")
       .select("id")
+      .eq("owner_id", serverEnv.moniqOwnerId)
       .eq("card_id", parsed.data.cardId)
       .maybeSingle();
 
@@ -51,6 +54,7 @@ export async function registerUserCard(
     }
 
     const payload = toUserCardInsert({
+      ownerId: serverEnv.moniqOwnerId,
       cardId: parsed.data.cardId,
       alias: parsed.data.alias,
       isDefault: (count ?? 0) === 0,
@@ -94,6 +98,7 @@ export async function setDefaultUserCard(userCardId: string) {
   const { error: unsetError } = await supabase
     .from("user_cards")
     .update({ is_default: false })
+    .eq("owner_id", serverEnv.moniqOwnerId)
     .eq("is_default", true);
 
   if (unsetError) {
@@ -103,7 +108,8 @@ export async function setDefaultUserCard(userCardId: string) {
   const { error: setError } = await supabase
     .from("user_cards")
     .update({ is_default: true })
-    .eq("id", userCardId);
+    .eq("id", userCardId)
+    .eq("owner_id", serverEnv.moniqOwnerId);
 
   if (setError) {
     throw new Error(setError.message);
@@ -119,6 +125,7 @@ export async function deleteUserCard(userCardId: string) {
     .from("user_cards")
     .select("id, is_default")
     .eq("id", userCardId)
+    .eq("owner_id", serverEnv.moniqOwnerId)
     .maybeSingle();
 
   if (currentCardError) {
@@ -128,7 +135,8 @@ export async function deleteUserCard(userCardId: string) {
   const { error: deleteError } = await supabase
     .from("user_cards")
     .delete()
-    .eq("id", userCardId);
+    .eq("id", userCardId)
+    .eq("owner_id", serverEnv.moniqOwnerId);
 
   if (deleteError) {
     throw new Error(deleteError.message);
@@ -138,6 +146,7 @@ export async function deleteUserCard(userCardId: string) {
     const { data: nextCard, error: nextCardError } = await supabase
       .from("user_cards")
       .select("id")
+      .eq("owner_id", serverEnv.moniqOwnerId)
       .order("created_at", { ascending: true })
       .limit(1)
       .maybeSingle();
@@ -150,7 +159,8 @@ export async function deleteUserCard(userCardId: string) {
       const { error: resetError } = await supabase
         .from("user_cards")
         .update({ is_default: true })
-        .eq("id", nextCard.id);
+        .eq("id", nextCard.id)
+        .eq("owner_id", serverEnv.moniqOwnerId);
 
       if (resetError) {
         throw new Error(resetError.message);

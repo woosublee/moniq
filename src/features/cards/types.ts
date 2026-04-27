@@ -14,6 +14,7 @@ export type CardRecord = {
 
 export type UserCardRecord = {
   id: string;
+  owner_id: string;
   alias: string | null;
   is_default: boolean;
   created_at: string;
@@ -22,6 +23,7 @@ export type UserCardRecord = {
 };
 
 export type UserCardInsert = {
+  owner_id: string;
   card_id: string;
   alias: string | null;
   is_default: boolean;
