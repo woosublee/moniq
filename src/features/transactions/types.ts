@@ -67,4 +67,5 @@ export type TransactionFilters = {
   endDate?: string;
   paymentMethod?: PaymentMethod | "all";
   userCardId?: string;
+  timezoneOffset?: string;
 };

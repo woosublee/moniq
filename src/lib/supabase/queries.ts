@@ -8,6 +8,17 @@ import type {
 import { serverEnv } from "@/lib/server-env";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
+const getLocalDateBoundary = (
+  date: string,
+  time: "00:00:00" | "23:59:59",
+  timezoneOffset = "0",
+) => {
+  const offsetMinutes = Number(timezoneOffset);
+  const localDate = new Date(`${date}T${time}`);
+
+  return new Date(localDate.getTime() + offsetMinutes * 60_000).toISOString();
+};
+
 export const getRecentTransactions = cache(
   async (filters: TransactionFilters = {}): Promise<TransactionRecord[]> => {
     const supabase = createSupabaseServerClient();
@@ -21,11 +32,17 @@ export const getRecentTransactions = cache(
       .limit(50);
 
     if (filters.startDate) {
-      request = request.gte("occurred_at", `${filters.startDate}T00:00:00+09:00`);
+      request = request.gte(
+        "occurred_at",
+        getLocalDateBoundary(filters.startDate, "00:00:00", filters.timezoneOffset),
+      );
     }
 
     if (filters.endDate) {
-      request = request.lte("occurred_at", `${filters.endDate}T23:59:59+09:00`);
+      request = request.lte(
+        "occurred_at",
+        getLocalDateBoundary(filters.endDate, "23:59:59", filters.timezoneOffset),
+      );
     }
 
     if (filters.paymentMethod && filters.paymentMethod !== "all") {

@@ -1,4 +1,4 @@
-import { deleteTransaction } from "@/app/transactions/new/actions";
+import { TransactionDeleteForm } from "@/components/transactions/transaction-delete-form";
 import { TransactionEditDialog } from "@/components/transactions/transaction-edit-dialog";
 import type { UserCardRecord } from "@/features/cards/types";
 import type { PaymentMethod, TransactionRecord } from "@/features/transactions/types";
@@ -85,14 +85,7 @@ export function TransactionsTable({
             <span>{transaction.is_fixed_cost ? "Y" : "-"}</span>
             <div className="flex justify-end gap-1.5">
               <TransactionEditDialog transaction={transaction} userCards={userCards} />
-              <form action={deleteTransaction.bind(null, transaction.id)}>
-                <button
-                  type="submit"
-                  className="inline-flex h-8 items-center justify-center rounded-full border border-rose-400/20 bg-rose-400/10 px-2.5 text-[11px] font-medium text-rose-100 transition hover:bg-rose-400/20"
-                >
-                  삭제
-                </button>
-              </form>
+              <TransactionDeleteForm transactionId={transaction.id} />
             </div>
           </div>
         ))}

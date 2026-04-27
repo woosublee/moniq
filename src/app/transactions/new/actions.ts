@@ -13,11 +13,8 @@ const revalidateTransactions = () => {
   revalidatePath("/transactions/new");
 };
 
-export async function createTransaction(
-  _prevState: TransactionFormState,
-  formData: FormData,
-): Promise<TransactionFormState> {
-  const parsed = parseTransactionInput({
+const parseTransactionFormData = (formData: FormData) =>
+  parseTransactionInput({
     occurredAt: formData.get("occurredAt"),
     merchantName: formData.get("merchantName"),
     amount: formData.get("amount"),
@@ -32,6 +29,12 @@ export async function createTransaction(
     isFixedCost: formData.get("isFixedCost"),
     memo: formData.get("memo"),
   });
+
+export async function createTransaction(
+  _prevState: TransactionFormState,
+  formData: FormData,
+): Promise<TransactionFormState> {
+  const parsed = parseTransactionFormData(formData);
 
   if (!parsed.success) {
     return {
@@ -76,21 +79,7 @@ export async function updateTransaction(
   _prevState: TransactionFormState,
   formData: FormData,
 ): Promise<TransactionFormState> {
-  const parsed = parseTransactionInput({
-    occurredAt: formData.get("occurredAt"),
-    merchantName: formData.get("merchantName"),
-    amount: formData.get("amount"),
-    actualAmount: formData.get("actualAmount"),
-    benefitLabel: formData.get("benefitLabel"),
-    benefitAmount: formData.get("benefitAmount"),
-    finalAmount: formData.get("finalAmount"),
-    paymentMethod: formData.get("paymentMethod"),
-    userCardId: formData.get("userCardId"),
-    isPerformanceEligible: formData.get("isPerformanceEligible"),
-    ledgerCategory: formData.get("ledgerCategory"),
-    isFixedCost: formData.get("isFixedCost"),
-    memo: formData.get("memo"),
-  });
+  const parsed = parseTransactionFormData(formData);
 
   if (!parsed.success) {
     return {
@@ -134,17 +123,38 @@ export async function updateTransaction(
   }
 }
 
-export async function deleteTransaction(transactionId: string) {
-  const supabase = createSupabaseServerClient();
-  const { error } = await supabase
-    .from("transactions")
-    .delete()
-    .eq("id", transactionId)
-    .eq("owner_id", serverEnv.moniqOwnerId);
+export async function deleteTransaction(
+  transactionId: string,
+): Promise<TransactionFormState> {
+  try {
+    const supabase = createSupabaseServerClient();
+    const { error } = await supabase
+      .from("transactions")
+      .delete()
+      .eq("id", transactionId)
+      .eq("owner_id", serverEnv.moniqOwnerId);
 
-  if (error) {
-    throw new Error(error.message);
+    if (error) {
+      return {
+        status: "error",
+        message: error.message,
+      };
+    }
+
+    revalidateTransactions();
+
+    return {
+      status: "success",
+      message: "거래가 삭제되었습니다.",
+    };
+  } catch (error) {
+    return {
+      ...initialTransactionFormState,
+      status: "error",
+      message:
+        error instanceof Error
+          ? error.message
+          : "거래 삭제 중 알 수 없는 오류가 발생했습니다.",
+    };
   }
-
-  revalidateTransactions();
 }

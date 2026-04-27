@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { TimezoneOffsetInput } from "@/components/transactions/timezone-offset-input";
 import { TransactionCreateDialog } from "@/components/transactions/transaction-create-dialog";
 import { TransactionsTable } from "@/components/transactions/transactions-table";
 import { getDefaultUserCard, getRecentTransactions, getUserCards } from "@/lib/supabase/queries";
@@ -13,6 +14,7 @@ export default async function NewTransactionPage({
     endDate?: string;
     paymentMethod?: PaymentMethod | "all";
     userCardId?: string;
+    timezoneOffset?: string;
   }>;
 }) {
   const filters = await searchParams;
@@ -60,6 +62,7 @@ export default async function NewTransactionPage({
 
         <section className="rounded-[28px] border border-white/10 bg-slate-950/55 p-6 backdrop-blur sm:p-7">
           <form className="flex flex-wrap items-end gap-3">
+            <TimezoneOffsetInput value={filters.timezoneOffset} />
             <label className="min-w-[160px] flex-1 text-sm text-blue-50/82">
               시작일
               <input

@@ -32,27 +32,6 @@ export async function registerUserCard(
       .select("id", { count: "exact", head: true })
       .eq("owner_id", serverEnv.moniqOwnerId);
 
-    const { data: existingCard, error: existingCardError } = await supabase
-      .from("user_cards")
-      .select("id")
-      .eq("owner_id", serverEnv.moniqOwnerId)
-      .eq("card_id", parsed.data.cardId)
-      .maybeSingle();
-
-    if (existingCardError) {
-      return {
-        status: "error",
-        message: existingCardError.message,
-      };
-    }
-
-    if (existingCard) {
-      return {
-        status: "error",
-        message: "이미 내 카드에 등록된 카드입니다.",
-      };
-    }
-
     const payload = toUserCardInsert({
       ownerId: serverEnv.moniqOwnerId,
       cardId: parsed.data.cardId,
