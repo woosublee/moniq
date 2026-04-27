@@ -23,9 +23,9 @@ const getLocalDatetimeValue = (date: Date = new Date()) => {
 };
 
 const fieldClassName =
-  "mt-2 w-full rounded-2xl border border-white/10 bg-white/6 px-4 py-3 text-sm text-white outline-none transition placeholder:text-blue-100/40 focus:border-cyan-300/70 focus:bg-white/8";
+  "mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:bg-white";
 
-const labelClassName = "text-sm font-medium text-blue-50/88";
+const labelClassName = "text-sm font-medium text-slate-700";
 
 export function TransactionForm({
   userCards = [],
@@ -58,11 +58,11 @@ export function TransactionForm({
   }, [onSuccess, state.status]);
 
   return (
-    <section className={compact ? "" : "rounded-[28px] border border-white/10 bg-white/6 p-7 backdrop-blur"}>
+    <section className={compact ? "" : "rounded-3xl border border-slate-200 bg-white p-7 shadow-sm"}>
       {compact ? null : (
         <div className="space-y-2">
-          <p className="text-lg font-semibold text-white">지출 입력</p>
-          <p className="text-sm leading-7 text-blue-100/72">
+          <p className="text-lg font-semibold text-slate-950">지출 입력</p>
+          <p className="text-sm leading-7 text-slate-500">
             금액, 사용처, 결제수단을 입력하고 필요한 경우 카드 혜택도 함께 기록하세요.
           </p>
         </div>
@@ -143,16 +143,16 @@ export function TransactionForm({
               </option>
               {userCards.map((userCard) => (
                 <option key={userCard.id} value={userCard.id} className="text-slate-950">
-                  {userCard.alias || `${userCard.card.issuer} ${userCard.card.name}`}
+                  {userCard.card.issuer} {userCard.card.name}{userCard.alias ? ` (${userCard.alias})` : ""}
                 </option>
               ))}
             </select>
             {userCards.length > 0 ? (
-              <p className="mt-2 text-xs text-blue-100/55">
+              <p className="mt-2 text-xs text-slate-500">
                 카드를 선택하면 지출 내역에서 카드별 사용 내역을 함께 확인할 수 있습니다.
               </p>
             ) : (
-              <p className="mt-2 text-xs text-cyan-200">
+              <p className="mt-2 text-xs text-emerald-700">
                 카드를 등록하면 지출에 결제 카드를 연결할 수 있어요.
               </p>
             )}
@@ -214,7 +214,7 @@ export function TransactionForm({
               step="1"
               className={fieldClassName}
               defaultValue={initialTransaction ? Number(initialTransaction.final_amount) : undefined}
-              placeholder="비워두면 금액과 같게 저장됩니다"
+              placeholder="비워두면 결제 금액에서 혜택 금액을 뺀 값으로 저장됩니다"
             />
             <FieldError errors={state.fieldErrors?.finalAmount} />
           </label>
@@ -233,22 +233,22 @@ export function TransactionForm({
             <FieldError errors={state.fieldErrors?.benefitLabel} />
           </label>
 
-          <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-slate-950/45 px-4 py-4 text-sm text-blue-50/82">
+          <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-700">
             <input
               name="isPerformanceEligible"
               type="checkbox"
               defaultChecked={initialTransaction?.is_performance_eligible ?? true}
-              className="h-4 w-4 rounded border-white/20"
+              className="h-4 w-4 rounded border-slate-300"
             />
             실적 인정
           </label>
 
-          <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-slate-950/45 px-4 py-4 text-sm text-blue-50/82">
+          <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-700">
             <input
               name="isFixedCost"
               type="checkbox"
               defaultChecked={initialTransaction?.is_fixed_cost ?? false}
-              className="h-4 w-4 rounded border-white/20"
+              className="h-4 w-4 rounded border-slate-300"
             />
             고정비
           </label>
@@ -270,16 +270,16 @@ export function TransactionForm({
           <div
             className={
               state.status === "success"
-                ? "rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-100"
-                : "rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-100"
+                ? "rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"
+                : "rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700"
             }
           >
             {state.message}
           </div>
         ) : null}
 
-        <div className="flex items-center justify-between gap-4 border-t border-white/10 pt-2">
-          <p className="text-xs leading-6 text-blue-100/55">
+        <div className="flex items-center justify-between gap-4 border-t border-slate-200 pt-2">
+          <p className="text-xs leading-6 text-slate-500">
             카드사 앱이나 영수증에서 확인한 할인·적립 혜택을 함께 적어두면 월말 정산이 쉬워져요.
           </p>
           <SubmitButton />
@@ -294,5 +294,5 @@ function FieldError({ errors }: { errors?: string[] }) {
     return null;
   }
 
-  return <p className="mt-2 text-xs text-rose-200">{errors[0]}</p>;
+  return <p className="mt-2 text-xs text-rose-600">{errors[0]}</p>;
 }

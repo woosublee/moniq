@@ -6,67 +6,75 @@ import type { UserCardRecord } from "@/features/cards/types";
 export function UserCardsList({ cards }: { cards: UserCardRecord[] }) {
   if (cards.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-white/12 bg-white/4 px-5 py-8 text-sm text-blue-100/70">
-        <p className="text-base font-semibold text-white">아직 등록한 카드가 없어요.</p>
-        <p className="mt-2 leading-7">
-          카드를 등록하면 지출을 입력할 때 결제 카드를 바로 선택할 수 있습니다.
-        </p>
+      <div className="border-y border-slate-200 px-3 py-8 text-sm text-slate-500">
+        <p className="font-semibold text-slate-950">아직 등록한 카드가 없어요.</p>
+        <p className="mt-1">카드를 등록하면 지출 입력 시 결제 카드를 바로 선택할 수 있습니다.</p>
         <Link
-          href="/cards/search"
-          className="mt-5 inline-flex h-10 items-center justify-center rounded-full bg-cyan-400 px-4 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300"
+          href="/cards"
+          className="mt-4 inline-flex h-8 items-center justify-center rounded-md bg-slate-950 px-3 text-sm font-medium text-white transition hover:bg-slate-800"
         >
-          카드 찾으러 가기
+          카드 추가
         </Link>
       </div>
     );
   }
 
   return (
-    <div className="space-y-3">
-      {cards.map((userCard) => (
-        <article
-          key={userCard.id}
-          className="rounded-2xl border border-white/10 bg-white/5 px-5 py-4"
-        >
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="text-base font-semibold text-white">
-                  {userCard.alias || userCard.card.name}
-                </p>
-                {userCard.is_default ? (
-                  <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-2.5 py-1 text-xs font-medium text-cyan-200">
-                    기본 결제 카드
-                  </span>
-                ) : null}
-              </div>
-              <p className="mt-2 text-sm text-blue-100/72">
-                {userCard.card.issuer} · {userCard.card.card_type === "credit_card" ? "신용카드" : "체크카드"}
+    <div className="overflow-hidden border-y border-slate-200 bg-white">
+      <div className="grid grid-cols-[minmax(0,1fr)_130px_96px_132px] gap-3 border-b border-slate-200 bg-slate-50/70 px-3 py-2 text-[11px] font-medium uppercase tracking-[0.06em] text-slate-500">
+        <span>카드</span>
+        <span className="text-center">종류</span>
+        <span className="text-center">상태</span>
+        <span className="text-center">관리</span>
+      </div>
+      <div className="divide-y divide-slate-100">
+        {cards.map((userCard) => (
+          <article
+            key={userCard.id}
+            className="grid grid-cols-[minmax(0,1fr)_130px_96px_132px] items-center gap-3 px-3 py-3 text-sm hover:bg-slate-50/70"
+          >
+            <div className="min-w-0">
+              <p className="truncate font-medium text-slate-950">
+                {userCard.card.issuer} {userCard.card.name}
+              </p>
+              <p className="mt-1 truncate text-slate-500">
+                {userCard.alias ? `별칭: ${userCard.alias}` : "별칭 없음"}
               </p>
             </div>
-
-            <div className="flex flex-wrap gap-2">
+            <span className="text-center text-slate-600">
+              {userCard.card.card_type === "credit_card" ? "신용카드" : "체크카드"}
+            </span>
+            <span className="text-center">
+              {userCard.is_default ? (
+                <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                  기본
+                </span>
+              ) : (
+                <span className="text-slate-400">-</span>
+              )}
+            </span>
+            <div className="flex justify-end gap-1 pr-2">
               <form action={setDefaultUserCard.bind(null, userCard.id)}>
                 <button
                   type="submit"
                   disabled={userCard.is_default}
-                  className="inline-flex h-11 items-center justify-center rounded-full border border-white/12 bg-white/6 px-4 text-sm font-medium text-blue-50 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex h-8 items-center justify-center rounded-md px-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-400"
                 >
-                  기본으로 사용
+                  기본
                 </button>
               </form>
               <form action={deleteUserCard.bind(null, userCard.id)}>
                 <button
                   type="submit"
-                  className="inline-flex h-11 items-center justify-center rounded-full border border-rose-400/20 bg-rose-400/10 px-4 text-sm font-medium text-rose-100 transition hover:bg-rose-400/20"
+                  className="inline-flex h-8 items-center justify-center rounded-md px-2 text-sm font-medium text-rose-600 transition hover:bg-rose-50"
                 >
                   삭제
                 </button>
               </form>
             </div>
-          </div>
-        </article>
-      ))}
+          </article>
+        ))}
+      </div>
     </div>
   );
 }

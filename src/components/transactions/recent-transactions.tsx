@@ -55,7 +55,7 @@ export function RecentTransactions({
                   <span><LocalDate value={transaction.occurred_at} format="datetime" /></span>
                   {transaction.user_cards ? (
                     <span>
-                      {transaction.user_cards.alias || `${transaction.user_cards.card.issuer} ${transaction.user_cards.card.name}`}
+                      {transaction.user_cards.card.issuer} {transaction.user_cards.card.name}{transaction.user_cards.alias ? ` (${transaction.user_cards.alias})` : ""}
                     </span>
                   ) : null}
                 </div>

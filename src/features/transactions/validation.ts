@@ -85,7 +85,9 @@ export const parseTransactionInput = (raw: {
   const amount = raw.amount ? Number(raw.amount) : Number.NaN;
   const actualAmount = raw.actualAmount ? Number(raw.actualAmount) : amount;
   const benefitAmount = raw.benefitAmount ? Number(raw.benefitAmount) : 0;
-  const finalAmount = raw.finalAmount ? Number(raw.finalAmount) : amount;
+  const finalAmount = raw.finalAmount
+    ? Number(raw.finalAmount)
+    : Math.max(actualAmount - benefitAmount, 0);
 
   const input = {
     occurredAt: String(raw.occurredAt ?? ""),

@@ -159,3 +159,46 @@ export async function deleteTransaction(
     };
   }
 }
+
+export async function deleteTransactions(
+  transactionIds: string[],
+): Promise<TransactionFormState> {
+  if (transactionIds.length === 0) {
+    return {
+      status: "error",
+      message: "삭제할 지출을 선택해 주세요.",
+    };
+  }
+
+  try {
+    const supabase = createSupabaseServerClient();
+    const { error } = await supabase
+      .from("transactions")
+      .delete()
+      .in("id", transactionIds)
+      .eq("owner_id", serverEnv.moniqOwnerId);
+
+    if (error) {
+      return {
+        status: "error",
+        message: error.message,
+      };
+    }
+
+    revalidateTransactions();
+
+    return {
+      status: "success",
+      message: "선택한 지출 내역이 삭제되었습니다.",
+    };
+  } catch (error) {
+    return {
+      ...initialTransactionFormState,
+      status: "error",
+      message:
+        error instanceof Error
+          ? error.message
+          : "선택한 지출 내역을 삭제하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+    };
+  }
+}

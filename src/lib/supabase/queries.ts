@@ -8,6 +8,9 @@ import type {
 import { serverEnv } from "@/lib/server-env";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
+const transactionSelect =
+  "id, owner_id, occurred_at, merchant_name, amount, actual_amount, benefit_label, benefit_amount, final_amount, eligible_spend_amount, is_performance_eligible, payment_method, ledger_category, is_fixed_cost, user_card_id, memo, user_cards(id, owner_id, alias, is_default, card_id, card:cards(id, issuer, name, card_type, network, annual_fee, image_url, searchable_text, created_at))";
+
 const getLocalDateBoundary = (
   date: string,
   time: "00:00:00" | "23:59:59",
@@ -19,14 +22,14 @@ const getLocalDateBoundary = (
   return new Date(localDate.getTime() + offsetMinutes * 60_000).toISOString();
 };
 
+const toDateInputValue = (date: Date) => date.toISOString().slice(0, 10);
+
 export const getRecentTransactions = cache(
   async (filters: TransactionFilters = {}): Promise<TransactionRecord[]> => {
     const supabase = createSupabaseServerClient();
     let request = supabase
       .from("transactions")
-      .select(
-        "id, owner_id, occurred_at, merchant_name, amount, actual_amount, benefit_label, benefit_amount, final_amount, eligible_spend_amount, is_performance_eligible, payment_method, ledger_category, is_fixed_cost, user_card_id, memo, user_cards(id, owner_id, alias, is_default, card_id, card:cards(id, issuer, name, card_type, network, annual_fee, image_url, searchable_text, created_at))",
-      )
+      .select(transactionSelect)
       .eq("owner_id", serverEnv.moniqOwnerId)
       .order("occurred_at", { ascending: false })
       .limit(50);
@@ -54,6 +57,28 @@ export const getRecentTransactions = cache(
     }
 
     const { data, error } = await request;
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return (data ?? []) as unknown as TransactionRecord[];
+  },
+);
+
+export const getCurrentMonthTransactions = cache(
+  async (): Promise<TransactionRecord[]> => {
+    const now = new Date();
+    const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+    const monthEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0));
+    const supabase = createSupabaseServerClient();
+    const { data, error } = await supabase
+      .from("transactions")
+      .select(transactionSelect)
+      .eq("owner_id", serverEnv.moniqOwnerId)
+      .gte("occurred_at", getLocalDateBoundary(toDateInputValue(monthStart), "00:00:00"))
+      .lte("occurred_at", getLocalDateBoundary(toDateInputValue(monthEnd), "23:59:59"))
+      .order("occurred_at", { ascending: false });
 
     if (error) {
       throw new Error(error.message);
