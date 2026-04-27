@@ -29,8 +29,8 @@ export function TransactionsTable({
 
   return (
     <div className="overflow-x-auto rounded-[24px] border border-white/10 bg-slate-950/55 backdrop-blur">
-      <div className="min-w-[1620px]">
-        <div className="grid grid-cols-[92px_220px_180px_112px_112px_128px_180px_86px_130px_78px_112px] gap-3 border-b border-white/10 px-4 py-3 text-[11px] font-medium uppercase tracking-[0.08em] text-blue-100/58">
+      <div className="min-w-[1280px]">
+        <div className="grid grid-cols-[78px_180px_150px_98px_98px_106px_150px_68px_108px_58px_100px] gap-2 border-b border-white/10 px-4 py-3 text-[11px] font-medium uppercase tracking-[0.08em] text-blue-100/58">
           <span>날짜</span>
           <span>사용처</span>
           <span>카드</span>
@@ -47,7 +47,7 @@ export function TransactionsTable({
         {transactions.map((transaction) => (
           <div
             key={transaction.id}
-            className="grid grid-cols-[92px_220px_180px_112px_112px_128px_180px_86px_130px_78px_112px] gap-3 border-b border-white/8 px-4 py-3.5 text-[13px] text-blue-50/86 last:border-b-0"
+            className="grid grid-cols-[78px_180px_150px_98px_98px_106px_150px_68px_108px_58px_100px] gap-2 border-b border-white/8 px-4 py-3.5 text-[13px] text-blue-50/86 last:border-b-0"
           >
             <span className="text-blue-100/72">
               {new Date(transaction.occurred_at).toLocaleDateString("ko-KR", {

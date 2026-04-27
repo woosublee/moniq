@@ -3,6 +3,7 @@
 import { useActionState, useEffect } from "react";
 
 import { SubmitButton } from "@/components/transactions/submit-button";
+import { TimezoneOffsetInput } from "@/components/transactions/timezone-offset-input";
 import { createTransaction } from "@/app/transactions/new/actions";
 import type { UserCardRecord } from "@/features/cards/types";
 import type {
@@ -11,6 +12,7 @@ import type {
 } from "@/features/transactions/types";
 import {
   initialTransactionFormState,
+  ledgerCategories,
   paymentMethodOptions,
 } from "@/features/transactions/constants";
 
@@ -24,17 +26,6 @@ const fieldClassName =
   "mt-2 w-full rounded-2xl border border-white/10 bg-white/6 px-4 py-3 text-sm text-white outline-none transition placeholder:text-blue-100/40 focus:border-cyan-300/70 focus:bg-white/8";
 
 const labelClassName = "text-sm font-medium text-blue-50/88";
-
-const ledgerCategories = [
-  "생활비",
-  "식비",
-  "교통비",
-  "주거비",
-  "통신비",
-  "쇼핑",
-  "구독",
-  "기타",
-];
 
 export function TransactionForm({
   userCards = [],
@@ -78,6 +69,7 @@ export function TransactionForm({
       )}
 
       <form action={formAction} className={compact ? "space-y-5" : "mt-6 space-y-5"}>
+        <TimezoneOffsetInput />
         <div className="grid gap-5 sm:grid-cols-2">
           <label className="block">
             <span className={labelClassName}>금액</span>

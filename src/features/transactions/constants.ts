@@ -27,6 +27,17 @@ export const paymentMethodOptions: Array<{
   },
 ];
 
+export const ledgerCategories = [
+  "생활비",
+  "식비",
+  "교통비",
+  "주거비",
+  "통신비",
+  "쇼핑",
+  "구독",
+  "기타",
+];
+
 export const initialTransactionFormState: TransactionFormState = {
   status: "idle",
   message: "",

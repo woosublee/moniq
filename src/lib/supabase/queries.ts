@@ -14,7 +14,7 @@ const getLocalDateBoundary = (
   timezoneOffset = "0",
 ) => {
   const offsetMinutes = Number(timezoneOffset);
-  const localDate = new Date(`${date}T${time}`);
+  const localDate = new Date(`${date}T${time}Z`);
 
   return new Date(localDate.getTime() + offsetMinutes * 60_000).toISOString();
 };

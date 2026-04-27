@@ -19,6 +19,9 @@ export const transactionInputSchema = z
     occurredAt: z
       .string()
       .min(1, "거래 일시를 입력해 주세요."),
+    timezoneOffset: z
+      .number("타임존 정보를 숫자로 입력해 주세요.")
+      .finite("타임존 정보가 올바르지 않습니다."),
     merchantName: z
       .string()
       .trim()
@@ -64,6 +67,7 @@ export const transactionInputSchema = z
 
 export const parseTransactionInput = (raw: {
   occurredAt: FormDataEntryValue | null;
+  timezoneOffset: FormDataEntryValue | null;
   merchantName: FormDataEntryValue | null;
   amount: FormDataEntryValue | null;
   actualAmount: FormDataEntryValue | null;
@@ -77,6 +81,7 @@ export const parseTransactionInput = (raw: {
   isFixedCost: FormDataEntryValue | null;
   memo: FormDataEntryValue | null;
 }) => {
+  const timezoneOffset = raw.timezoneOffset ? Number(raw.timezoneOffset) : 0;
   const amount = raw.amount ? Number(raw.amount) : Number.NaN;
   const actualAmount = raw.actualAmount ? Number(raw.actualAmount) : amount;
   const benefitAmount = raw.benefitAmount ? Number(raw.benefitAmount) : 0;
@@ -84,6 +89,7 @@ export const parseTransactionInput = (raw: {
 
   const input = {
     occurredAt: String(raw.occurredAt ?? ""),
+    timezoneOffset,
     merchantName: String(raw.merchantName ?? ""),
     amount,
     actualAmount,

@@ -4,6 +4,7 @@ import type { UserCardRecord } from "@/features/cards/types";
 
 export type TransactionInput = {
   occurredAt: string;
+  timezoneOffset: number;
   merchantName: string;
   amount: number;
   actualAmount: number;
@@ -39,7 +40,7 @@ export type TransactionInsert = {
 export type TransactionFormState = {
   status: "idle" | "success" | "error";
   message: string;
-  fieldErrors?: Partial<Record<keyof TransactionInput, string[]>>;
+  fieldErrors?: Partial<Record<Exclude<keyof TransactionInput, "timezoneOffset">, string[]>>;
 };
 
 export type TransactionRecord = {

@@ -1,11 +1,17 @@
 import type { TransactionInput, TransactionInsert } from "@/features/transactions/types";
 
+const toUtcIsoString = (localDatetime: string, timezoneOffset: number) => {
+  const localDate = new Date(`${localDatetime}:00Z`);
+
+  return new Date(localDate.getTime() + timezoneOffset * 60_000).toISOString();
+};
+
 export const toTransactionInsert = (
   ownerId: string,
   input: TransactionInput,
 ): TransactionInsert => ({
   owner_id: ownerId,
-  occurred_at: input.occurredAt,
+  occurred_at: toUtcIsoString(input.occurredAt, input.timezoneOffset),
   merchant_name: input.merchantName,
   amount: input.amount,
   actual_amount: input.actualAmount,

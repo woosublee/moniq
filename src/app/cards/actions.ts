@@ -27,10 +27,17 @@ export async function registerUserCard(
 
   try {
     const supabase = createSupabaseServerClient();
-    const { count } = await supabase
+    const { count, error: countError } = await supabase
       .from("user_cards")
       .select("id", { count: "exact", head: true })
       .eq("owner_id", serverEnv.moniqOwnerId);
+
+    if (countError) {
+      return {
+        status: "error",
+        message: countError.message,
+      };
+    }
 
     const payload = toUserCardInsert({
       ownerId: serverEnv.moniqOwnerId,

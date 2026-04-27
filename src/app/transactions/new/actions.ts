@@ -16,6 +16,7 @@ const revalidateTransactions = () => {
 const parseTransactionFormData = (formData: FormData) =>
   parseTransactionInput({
     occurredAt: formData.get("occurredAt"),
+    timezoneOffset: formData.get("timezoneOffset"),
     merchantName: formData.get("merchantName"),
     amount: formData.get("amount"),
     actualAmount: formData.get("actualAmount"),
