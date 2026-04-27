@@ -52,9 +52,10 @@ export async function registerUserCard(
       return {
         status: "error",
         message:
-          error.code === "23505"
-            ? "이미 내 카드에 등록된 카드입니다."
-            : error.message,
+          error.code === "23505" &&
+          error.message.includes("user_cards_owner_id_card_id_unique")
+            ? "이미 추가된 카드입니다."
+            : "카드를 추가하지 못했습니다. 잠시 후 다시 시도해 주세요.",
       };
     }
 
@@ -64,7 +65,7 @@ export async function registerUserCard(
 
     return {
       status: "success",
-      message: "내 카드에 등록되었습니다.",
+      message: "카드가 추가되었습니다.",
     };
   } catch (error) {
     return {
@@ -73,7 +74,7 @@ export async function registerUserCard(
       message:
         error instanceof Error
           ? error.message
-          : "카드 등록 중 오류가 발생했습니다.",
+          : "카드를 추가하지 못했습니다. 잠시 후 다시 시도해 주세요.",
     };
   }
 }

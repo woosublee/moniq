@@ -21,7 +21,7 @@ export function TransactionCreateDialog({
         onClick={() => setOpen(true)}
         className="inline-flex h-12 items-center justify-center rounded-full bg-cyan-400 px-5 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300"
       >
-        거래 추가
+        지출 추가
       </button>
 
       {open ? (
@@ -35,9 +35,9 @@ export function TransactionCreateDialog({
           >
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
-                <p className="text-lg font-semibold text-white">거래 추가</p>
+                <p className="text-lg font-semibold text-white">새 지출 기록</p>
                 <p className="mt-2 text-sm text-blue-100/72">
-                  필요한 항목만 입력하고 저장하면 바로 거래 내역 테이블에 반영됩니다.
+                  금액, 사용처, 결제수단을 입력해 오늘 쓴 돈을 정리하세요.
                 </p>
               </div>
               <button

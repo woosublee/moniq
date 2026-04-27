@@ -15,10 +15,10 @@ export default async function CardsPage() {
               홈
             </Link>
             <Link href="/transactions/new" className="rounded-full border border-white/12 bg-white/6 px-4 py-2 text-blue-50 transition hover:bg-white/10">
-              거래 입력
+              지출 내역
             </Link>
             <Link href="/cards/search" className="rounded-full border border-white/12 bg-white/6 px-4 py-2 text-blue-50 transition hover:bg-white/10">
-              카드 검색
+              카드 찾기
             </Link>
           </div>
           <div className="flex flex-wrap items-center justify-between gap-4">
@@ -27,17 +27,17 @@ export default async function CardsPage() {
                 My cards
               </p>
               <h1 className="mt-3 text-3xl font-semibold text-white sm:text-4xl">
-                등록한 내 카드를 관리합니다.
+                자주 쓰는 카드를 등록해두세요.
               </h1>
               <p className="mt-3 max-w-2xl text-sm leading-7 text-blue-50/78 sm:text-base">
-                여기서 등록한 카드는 가계부 탭과 카드 혜택 계산 탭에서 공통 기준으로 사용됩니다.
+                지출을 기록할 때 결제 카드를 빠르게 선택하고, 카드별 지출도 함께 확인할 수 있습니다.
               </p>
             </div>
             <Link
               href="/cards/search"
               className="inline-flex h-12 items-center justify-center rounded-full bg-cyan-400 px-5 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300"
             >
-              카드 검색하기
+              카드 찾기
             </Link>
           </div>
         </header>
@@ -45,9 +45,9 @@ export default async function CardsPage() {
         <section className="rounded-[28px] border border-white/10 bg-slate-950/55 p-7 backdrop-blur">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <p className="text-lg font-semibold text-white">내 카드 목록</p>
+              <p className="text-lg font-semibold text-white">등록된 카드</p>
               <p className="mt-2 text-sm leading-7 text-blue-100/72">
-                기본 카드로 지정한 항목을 이후 거래 입력의 기본 선택값으로 사용할 예정입니다.
+                가장 자주 쓰는 카드를 기본 카드로 설정하면 새 지출을 입력할 때 먼저 선택됩니다.
               </p>
             </div>
             <span className="rounded-full border border-white/12 bg-white/6 px-3 py-1 text-xs font-medium text-blue-50/82">

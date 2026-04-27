@@ -32,18 +32,18 @@ export const transactionInputSchema = z
       .finite("금액 형식이 올바르지 않습니다.")
       .positive("금액은 0보다 커야 합니다."),
     actualAmount: z
-      .number("실 사용 금액을 숫자로 입력해 주세요.")
-      .finite("실 사용 금액 형식이 올바르지 않습니다.")
-      .positive("실 사용 금액은 0보다 커야 합니다."),
-    benefitLabel: z.string().trim().max(120, "혜택 라벨은 120자 이하로 입력해 주세요."),
+      .number("결제 금액을 숫자로 입력해 주세요.")
+      .finite("결제 금액 형식이 올바르지 않습니다.")
+      .positive("결제 금액은 0보다 커야 합니다."),
+    benefitLabel: z.string().trim().max(120, "혜택 메모은 120자 이하로 입력해 주세요."),
     benefitAmount: z
-      .number("혜택 금액을 숫자로 입력해 주세요.")
-      .finite("혜택 금액 형식이 올바르지 않습니다.")
-      .min(0, "혜택 금액은 0 이상이어야 합니다."),
+      .number("할인/적립 금액을 숫자로 입력해 주세요.")
+      .finite("할인/적립 금액 형식이 올바르지 않습니다.")
+      .min(0, "할인/적립 금액은 0 이상이어야 합니다."),
     finalAmount: z
-      .number("최종 금액을 숫자로 입력해 주세요.")
-      .finite("최종 금액 형식이 올바르지 않습니다.")
-      .min(0, "최종 금액은 0 이상이어야 합니다."),
+      .number("최종 지출을 숫자로 입력해 주세요.")
+      .finite("최종 지출 형식이 올바르지 않습니다.")
+      .min(0, "최종 지출은 0 이상이어야 합니다."),
     paymentMethod: paymentMethodSchema,
     userCardId: z.string().uuid().nullable(),
     isPerformanceEligible: z.boolean(),

@@ -1,11 +1,22 @@
+import Link from "next/link";
+
 import { deleteUserCard, setDefaultUserCard } from "@/app/cards/actions";
 import type { UserCardRecord } from "@/features/cards/types";
 
 export function UserCardsList({ cards }: { cards: UserCardRecord[] }) {
   if (cards.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-white/12 bg-white/4 px-5 py-8 text-sm text-blue-100/65">
-        아직 등록된 내 카드가 없습니다. 카드 검색 탭에서 먼저 카드를 등록해 주세요.
+      <div className="rounded-2xl border border-dashed border-white/12 bg-white/4 px-5 py-8 text-sm text-blue-100/70">
+        <p className="text-base font-semibold text-white">아직 등록한 카드가 없어요.</p>
+        <p className="mt-2 leading-7">
+          카드를 등록하면 지출을 입력할 때 결제 카드를 바로 선택할 수 있습니다.
+        </p>
+        <Link
+          href="/cards/search"
+          className="mt-5 inline-flex h-10 items-center justify-center rounded-full bg-cyan-400 px-4 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300"
+        >
+          카드 찾으러 가기
+        </Link>
       </div>
     );
   }
@@ -25,7 +36,7 @@ export function UserCardsList({ cards }: { cards: UserCardRecord[] }) {
                 </p>
                 {userCard.is_default ? (
                   <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-2.5 py-1 text-xs font-medium text-cyan-200">
-                    기본 카드
+                    기본 결제 카드
                   </span>
                 ) : null}
               </div>
@@ -41,7 +52,7 @@ export function UserCardsList({ cards }: { cards: UserCardRecord[] }) {
                   disabled={userCard.is_default}
                   className="inline-flex h-11 items-center justify-center rounded-full border border-white/12 bg-white/6 px-4 text-sm font-medium text-blue-50 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  기본 카드로 설정
+                  기본으로 사용
                 </button>
               </form>
               <form action={deleteUserCard.bind(null, userCard.id)}>

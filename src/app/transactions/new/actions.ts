@@ -61,7 +61,7 @@ export async function createTransaction(
 
     return {
       status: "success",
-      message: "거래가 저장되었습니다.",
+      message: "지출이 저장되었습니다.",
     };
   } catch (error) {
     return {
@@ -70,7 +70,7 @@ export async function createTransaction(
       message:
         error instanceof Error
           ? error.message
-          : "거래 저장 중 알 수 없는 오류가 발생했습니다.",
+          : "지출을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.",
     };
   }
 }
@@ -110,7 +110,7 @@ export async function updateTransaction(
 
     return {
       status: "success",
-      message: "거래가 수정되었습니다.",
+      message: "지출 내역이 수정되었습니다.",
     };
   } catch (error) {
     return {
@@ -119,7 +119,7 @@ export async function updateTransaction(
       message:
         error instanceof Error
           ? error.message
-          : "거래 수정 중 알 수 없는 오류가 발생했습니다.",
+          : "지출 내역을 수정하지 못했습니다. 잠시 후 다시 시도해 주세요.",
     };
   }
 }
@@ -146,7 +146,7 @@ export async function deleteTransaction(
 
     return {
       status: "success",
-      message: "거래가 삭제되었습니다.",
+      message: "지출 내역이 삭제되었습니다.",
     };
   } catch (error) {
     return {
@@ -155,7 +155,7 @@ export async function deleteTransaction(
       message:
         error instanceof Error
           ? error.message
-          : "거래 삭제 중 알 수 없는 오류가 발생했습니다.",
+          : "지출 내역을 삭제하지 못했습니다. 잠시 후 다시 시도해 주세요.",
     };
   }
 }

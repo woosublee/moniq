@@ -61,9 +61,9 @@ export function TransactionForm({
     <section className={compact ? "" : "rounded-[28px] border border-white/10 bg-white/6 p-7 backdrop-blur"}>
       {compact ? null : (
         <div className="space-y-2">
-          <p className="text-lg font-semibold text-white">거래 입력</p>
+          <p className="text-lg font-semibold text-white">지출 입력</p>
           <p className="text-sm leading-7 text-blue-100/72">
-            가계부처럼 금액, 사용처, 결제수단, 카드를 빠르게 입력하고 바로 저장합니다.
+            금액, 사용처, 결제수단을 입력하고 필요한 경우 카드 혜택도 함께 기록하세요.
           </p>
         </div>
       )}
@@ -102,7 +102,7 @@ export function TransactionForm({
 
         <div className="grid gap-5 sm:grid-cols-2">
           <label className="block">
-            <span className={labelClassName}>거래 일시</span>
+            <span className={labelClassName}>사용 일시</span>
             <input
               name="occurredAt"
               type="datetime-local"
@@ -132,7 +132,7 @@ export function TransactionForm({
 
         <div className="grid gap-5 sm:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
           <label className="block">
-            <span className={labelClassName}>내 카드</span>
+            <span className={labelClassName}>결제 카드</span>
             <select
               name="userCardId"
               className={fieldClassName}
@@ -149,18 +149,18 @@ export function TransactionForm({
             </select>
             {userCards.length > 0 ? (
               <p className="mt-2 text-xs text-blue-100/55">
-                등록한 내 카드 중에서 선택합니다. 현금이나 포인트 결제는 비워둘 수 있습니다.
+                카드를 선택하면 지출 내역에서 카드별 사용 내역을 함께 확인할 수 있습니다.
               </p>
             ) : (
               <p className="mt-2 text-xs text-cyan-200">
-                등록된 카드가 없습니다. 먼저 카드 검색에서 내 카드를 등록해 주세요.
+                카드를 등록하면 지출에 결제 카드를 연결할 수 있어요.
               </p>
             )}
             <FieldError errors={state.fieldErrors?.userCardId} />
           </label>
 
           <label className="block">
-            <span className={labelClassName}>사용 내역 카테고리</span>
+            <span className={labelClassName}>카테고리</span>
             <select
               name="ledgerCategory"
               className={fieldClassName}
@@ -179,7 +179,7 @@ export function TransactionForm({
 
         <div className="grid gap-5 sm:grid-cols-3">
           <label className="block">
-            <span className={labelClassName}>실 사용 금액</span>
+            <span className={labelClassName}>결제 금액</span>
             <input
               name="actualAmount"
               type="number"
@@ -187,14 +187,13 @@ export function TransactionForm({
               step="1"
               className={fieldClassName}
               defaultValue={initialTransaction ? Number(initialTransaction.actual_amount) : undefined}
-              placeholder="예: 12000"
-              required
+              placeholder="비워두면 금액과 같게 저장됩니다"
             />
             <FieldError errors={state.fieldErrors?.actualAmount} />
           </label>
 
           <label className="block">
-            <span className={labelClassName}>혜택 금액</span>
+            <span className={labelClassName}>할인/적립 금액</span>
             <input
               name="benefitAmount"
               type="number"
@@ -207,7 +206,7 @@ export function TransactionForm({
           </label>
 
           <label className="block">
-            <span className={labelClassName}>최종 금액</span>
+            <span className={labelClassName}>최종 지출</span>
             <input
               name="finalAmount"
               type="number"
@@ -215,6 +214,7 @@ export function TransactionForm({
               step="1"
               className={fieldClassName}
               defaultValue={initialTransaction ? Number(initialTransaction.final_amount) : undefined}
+              placeholder="비워두면 금액과 같게 저장됩니다"
             />
             <FieldError errors={state.fieldErrors?.finalAmount} />
           </label>
@@ -222,7 +222,7 @@ export function TransactionForm({
 
         <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
           <label className="block">
-            <span className={labelClassName}>혜택 라벨</span>
+            <span className={labelClassName}>혜택 메모</span>
             <input
               name="benefitLabel"
               type="text"
@@ -280,7 +280,7 @@ export function TransactionForm({
 
         <div className="flex items-center justify-between gap-4 border-t border-white/10 pt-2">
           <p className="text-xs leading-6 text-blue-100/55">
-            혜택 라벨과 금액은 현재 수동 입력이며, 이후 계산 탭과 연결할 예정입니다.
+            카드사 앱이나 영수증에서 확인한 할인·적립 혜택을 함께 적어두면 월말 정산이 쉬워져요.
           </p>
           <SubmitButton />
         </div>

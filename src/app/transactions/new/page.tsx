@@ -42,13 +42,13 @@ export default async function NewTransactionPage({
               </div>
               <div className="mt-4 space-y-2">
                 <p className="text-sm font-medium uppercase tracking-[0.22em] text-blue-200/70">
-                  Transactions
+                  지출 내역
                 </p>
                 <h1 className="text-3xl font-semibold text-white sm:text-4xl">
-                  날짜와 조건으로 거래 내역을 보는 가계부 메인 화면입니다.
+                  날짜, 결제수단, 카드별로 지출을 확인하세요.
                 </h1>
                 <p className="max-w-2xl text-sm leading-7 text-blue-50/78 sm:text-base">
-                  거래 추가는 모달에서 처리하고, 메인 화면에서는 내역 조회와 필터에 집중합니다.
+                  기간과 카드를 골라 소비 흐름을 확인하고, 빠진 지출은 바로 기록할 수 있습니다.
                 </p>
               </div>
             </div>
@@ -61,6 +61,14 @@ export default async function NewTransactionPage({
         </header>
 
         <section className="rounded-[28px] border border-white/10 bg-slate-950/55 p-6 backdrop-blur sm:p-7">
+          <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="text-lg font-semibold text-white">내역 필터</p>
+              <p className="mt-2 text-sm text-blue-100/70">
+                원하는 기간, 결제수단, 카드만 골라 확인해 보세요.
+              </p>
+            </div>
+          </div>
           <form className="flex flex-wrap items-end gap-3">
             <TimezoneOffsetInput value={filters.timezoneOffset} />
             <label className="min-w-[160px] flex-1 text-sm text-blue-50/82">
@@ -113,7 +121,7 @@ export default async function NewTransactionPage({
                 href="/transactions/new"
                 className="inline-flex h-11 items-center justify-center rounded-full border border-white/12 bg-white/6 px-5 text-sm font-medium text-blue-50 transition hover:bg-white/10"
               >
-                초기화
+                전체 보기
               </Link>
             </div>
           </form>

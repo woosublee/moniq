@@ -1,3 +1,4 @@
+import { LocalDate } from "@/components/transactions/local-date";
 import { TransactionDeleteForm } from "@/components/transactions/transaction-delete-form";
 import { TransactionEditDialog } from "@/components/transactions/transaction-edit-dialog";
 import type { UserCardRecord } from "@/features/cards/types";
@@ -21,8 +22,11 @@ export function TransactionsTable({
 }) {
   if (transactions.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-white/12 bg-white/4 px-5 py-10 text-sm text-blue-100/65">
-        아직 저장된 거래가 없습니다. 우측 상단의 거래 추가 버튼으로 첫 거래를 입력해 보세요.
+      <div className="rounded-2xl border border-dashed border-white/12 bg-white/4 px-5 py-10 text-sm text-blue-100/70">
+        <p className="text-base font-semibold text-white">아직 기록한 지출이 없어요.</p>
+        <p className="mt-2 leading-7">
+          상단의 지출 추가 버튼으로 오늘 쓴 돈을 기록하면 날짜, 카드, 혜택 금액을 여기에서 확인할 수 있습니다.
+        </p>
       </div>
     );
   }
@@ -34,11 +38,11 @@ export function TransactionsTable({
           <span>날짜</span>
           <span>사용처</span>
           <span>카드</span>
-          <span className="text-right">실사용</span>
-          <span className="text-right">최종금액</span>
-          <span className="text-right">혜택금액</span>
-          <span>혜택</span>
-          <span>실적</span>
+          <span className="text-right">결제금액</span>
+          <span className="text-right">최종지출</span>
+          <span className="text-right">혜택</span>
+          <span>혜택메모</span>
+          <span>실적반영</span>
           <span>카테고리</span>
           <span>고정비</span>
           <span className="text-right">관리</span>
@@ -50,10 +54,7 @@ export function TransactionsTable({
             className="grid grid-cols-[78px_180px_150px_98px_98px_106px_150px_68px_108px_58px_100px] gap-2 border-b border-white/8 px-4 py-3.5 text-[13px] text-blue-50/86 last:border-b-0"
           >
             <span className="text-blue-100/72">
-              {new Date(transaction.occurred_at).toLocaleDateString("ko-KR", {
-                month: "2-digit",
-                day: "2-digit",
-              })}
+              <LocalDate value={transaction.occurred_at} />
             </span>
             <div className="min-w-0">
               <p className="truncate font-medium text-white">{transaction.merchant_name}</p>
@@ -75,14 +76,16 @@ export function TransactionsTable({
               {moneyFormatter.format(Number(transaction.final_amount))}원
             </span>
             <span className="text-right text-cyan-200">
-              {moneyFormatter.format(Number(transaction.benefit_amount))}원
+              {Number(transaction.benefit_amount) > 0
+                ? `${moneyFormatter.format(Number(transaction.benefit_amount))}원`
+                : "-"}
             </span>
             <div className="min-w-0">
               <p className="truncate text-blue-100/78">{transaction.benefit_label || "-"}</p>
             </div>
             <span>{transaction.is_performance_eligible ? "인정" : "제외"}</span>
             <span className="truncate">{transaction.ledger_category || "-"}</span>
-            <span>{transaction.is_fixed_cost ? "Y" : "-"}</span>
+            <span>{transaction.is_fixed_cost ? "고정" : "-"}</span>
             <div className="flex justify-end gap-1.5">
               <TransactionEditDialog transaction={transaction} userCards={userCards} />
               <TransactionDeleteForm transactionId={transaction.id} />

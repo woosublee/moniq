@@ -40,9 +40,9 @@ export function TransactionEditDialog({
               >
                 <div className="mb-5 flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-lg font-semibold text-white">거래 수정</p>
+                    <p className="text-lg font-semibold text-white">지출 내역 수정</p>
                     <p className="mt-2 text-sm text-blue-100/72">
-                      기존 거래 값을 수정해 거래 테이블과 계산 기준을 함께 맞춥니다.
+                      금액, 카드, 혜택 정보를 실제 결제 내역에 맞게 고쳐주세요.
                     </p>
                   </div>
                   <button

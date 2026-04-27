@@ -24,7 +24,7 @@ export default async function CardSearchPage({
               홈
             </Link>
             <Link href="/transactions/new" className="rounded-full border border-white/12 bg-white/6 px-4 py-2 text-blue-50 transition hover:bg-white/10">
-              거래 입력
+              지출 내역
             </Link>
             <Link href="/cards" className="rounded-full border border-white/12 bg-white/6 px-4 py-2 text-blue-50 transition hover:bg-white/10">
               내 카드
@@ -32,13 +32,13 @@ export default async function CardSearchPage({
           </div>
           <div className="mt-4 space-y-3">
             <p className="text-sm font-medium uppercase tracking-[0.22em] text-blue-200/70">
-              Card search
+              카드 찾기
             </p>
             <h1 className="text-3xl font-semibold text-white sm:text-4xl">
-              공용 카드 DB에서 내 카드를 검색해 등록합니다.
+              사용 중인 카드를 찾아 등록하세요.
             </h1>
             <p className="max-w-2xl text-sm leading-7 text-blue-50/78 sm:text-base">
-              카드명이나 카드사로 검색한 뒤 내 카드로 등록하면, 이후 거래 입력과 혜택 계산의 기준으로 사용됩니다.
+              카드사나 카드명으로 검색한 뒤, 지출 기록에 사용할 카드를 내 카드로 추가할 수 있습니다.
             </p>
           </div>
         </header>
@@ -49,7 +49,7 @@ export default async function CardSearchPage({
               type="text"
               name="query"
               defaultValue={query}
-              placeholder="예: 신한, taptap, Deep Dream"
+              placeholder="카드사 또는 카드명으로 검색"
               className="h-12 flex-1 rounded-full border border-white/10 bg-white/6 px-5 text-sm text-white outline-none placeholder:text-blue-100/35"
             />
             <button
@@ -60,9 +60,21 @@ export default async function CardSearchPage({
             </button>
           </form>
 
-          <div className="mt-6 grid gap-4 md:grid-cols-2">
-            {cards.map((card) => (
-              <article
+          {cards.length === 0 ? (
+            <div className="mt-6 rounded-2xl border border-dashed border-white/12 bg-white/4 px-5 py-8 text-sm text-blue-100/70">
+              <p className="text-base font-semibold text-white">
+                {query ? "검색 결과가 없어요." : "카드사나 카드명을 입력해 보세요."}
+              </p>
+              <p className="mt-2 leading-7">
+                {query
+                  ? "카드명이나 카드사를 다른 표현으로 입력해 다시 찾아보세요."
+                  : "보유한 카드를 찾은 뒤 내 카드로 추가하면 지출 기록에 바로 사용할 수 있습니다."}
+              </p>
+            </div>
+          ) : (
+            <div className="mt-6 grid gap-4 md:grid-cols-2">
+              {cards.map((card) => (
+                <article
                 key={card.id}
                 className="rounded-[24px] border border-white/10 bg-white/5 p-5"
               >
@@ -78,9 +90,10 @@ export default async function CardSearchPage({
                   card={card}
                   disabled={registeredCardIds.has(card.id)}
                 />
-              </article>
-            ))}
-          </div>
+                </article>
+              ))}
+            </div>
+          )}
         </section>
       </div>
     </main>
