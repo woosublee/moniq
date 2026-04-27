@@ -35,7 +35,7 @@ export const transactionInputSchema = z
       .number("결제 금액을 숫자로 입력해 주세요.")
       .finite("결제 금액 형식이 올바르지 않습니다.")
       .positive("결제 금액은 0보다 커야 합니다."),
-    benefitLabel: z.string().trim().max(120, "혜택 메모은 120자 이하로 입력해 주세요."),
+    benefitLabel: z.string().trim().max(120, "혜택 메모는 120자 이하로 입력해 주세요."),
     benefitAmount: z
       .number("할인/적립 금액을 숫자로 입력해 주세요.")
       .finite("할인/적립 금액 형식이 올바르지 않습니다.")
