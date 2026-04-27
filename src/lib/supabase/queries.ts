@@ -13,7 +13,7 @@ export const getRecentTransactions = cache(
     let request = supabase
       .from("transactions")
       .select(
-        "id, occurred_at, merchant_name, amount, actual_amount, benefit_label, benefit_amount, final_amount, eligible_spend_amount, is_performance_eligible, payment_method, ledger_category, is_fixed_cost, card_id, user_card_id, memo, user_cards(id, alias, is_default, card_id, card:cards(id, issuer, name, card_type, network, annual_fee, image_url, searchable_text, created_at))",
+        "id, occurred_at, merchant_name, amount, actual_amount, benefit_label, benefit_amount, final_amount, eligible_spend_amount, is_performance_eligible, payment_method, ledger_category, is_fixed_cost, user_card_id, memo, user_cards(id, alias, is_default, card_id, card:cards(id, issuer, name, card_type, network, annual_fee, image_url, searchable_text, created_at))",
       )
       .order("occurred_at", { ascending: false })
       .limit(50);

@@ -31,7 +31,6 @@ export type TransactionInsert = {
   payment_method: PaymentMethod;
   ledger_category: string | null;
   is_fixed_cost: boolean;
-  card_id: string | null;
   user_card_id: string | null;
   memo: string | null;
 };
@@ -56,7 +55,6 @@ export type TransactionRecord = {
   payment_method: PaymentMethod;
   ledger_category: string | null;
   is_fixed_cost: boolean;
-  card_id: string | null;
   user_card_id: string | null;
   memo: string | null;
   user_cards?: UserCardRecord | null;

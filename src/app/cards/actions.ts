@@ -90,21 +90,23 @@ export async function registerUserCard(
 
 export async function setDefaultUserCard(userCardId: string) {
   const supabase = createSupabaseServerClient();
-  const { data, error } = await supabase.from("user_cards").select("id");
 
-  if (error) {
-    throw new Error(error.message);
+  const { error: unsetError } = await supabase
+    .from("user_cards")
+    .update({ is_default: false })
+    .eq("is_default", true);
+
+  if (unsetError) {
+    throw new Error(unsetError.message);
   }
 
-  for (const row of data) {
-    const { error: updateError } = await supabase
-      .from("user_cards")
-      .update({ is_default: row.id === userCardId })
-      .eq("id", row.id);
+  const { error: setError } = await supabase
+    .from("user_cards")
+    .update({ is_default: true })
+    .eq("id", userCardId);
 
-    if (updateError) {
-      throw new Error(updateError.message);
-    }
+  if (setError) {
+    throw new Error(setError.message);
   }
 
   revalidatePath("/cards");

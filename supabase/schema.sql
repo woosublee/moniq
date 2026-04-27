@@ -39,7 +39,6 @@ create table if not exists public.transactions (
   ),
   ledger_category text,
   is_fixed_cost boolean not null default false,
-  card_id text,
   user_card_id uuid references public.user_cards(id) on delete set null,
   memo text,
   created_at timestamptz not null default now()
@@ -48,53 +47,3 @@ create table if not exists public.transactions (
 alter table public.cards enable row level security;
 alter table public.user_cards enable row level security;
 alter table public.transactions enable row level security;
-
-create policy "allow anon select cards"
-  on public.cards
-  for select
-  to anon
-  using (true);
-
-create policy "allow anon select user_cards"
-  on public.user_cards
-  for select
-  to anon
-  using (true);
-
-create policy "allow anon insert user_cards"
-  on public.user_cards
-  for insert
-  to anon
-  with check (true);
-
-create policy "allow anon update user_cards"
-  on public.user_cards
-  for update
-  to anon
-  using (true)
-  with check (true);
-
-create policy "allow anon insert transactions"
-  on public.transactions
-  for insert
-  to anon
-  with check (true);
-
-create policy "allow anon select transactions"
-  on public.transactions
-  for select
-  to anon
-  using (true);
-
-create policy "allow anon update transactions"
-  on public.transactions
-  for update
-  to anon
-  using (true)
-  with check (true);
-
-create policy "allow anon delete transactions"
-  on public.transactions
-  for delete
-  to anon
-  using (true);

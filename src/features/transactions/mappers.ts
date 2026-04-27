@@ -15,7 +15,6 @@ export const toTransactionInsert = (
   payment_method: input.paymentMethod,
   ledger_category: input.ledgerCategory || null,
   is_fixed_cost: input.isFixedCost,
-  card_id: null,
   user_card_id: input.userCardId,
   memo: input.memo || null,
 });

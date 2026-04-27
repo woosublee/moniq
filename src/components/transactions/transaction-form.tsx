@@ -11,11 +11,10 @@ import {
   paymentMethodOptions,
 } from "@/features/transactions/constants";
 
-const getCurrentDateTimeLocalValue = () => {
-  const now = new Date();
-  const timezoneOffset = now.getTimezoneOffset() * 60_000;
+const getLocalDatetimeValue = (date: Date = new Date()) => {
+  const timezoneOffset = date.getTimezoneOffset() * 60_000;
 
-  return new Date(now.getTime() - timezoneOffset).toISOString().slice(0, 16);
+  return new Date(date.getTime() - timezoneOffset).toISOString().slice(0, 16);
 };
 
 const fieldClassName =
@@ -55,8 +54,8 @@ export function TransactionForm({
   );
 
   const defaultOccurredAt = initialTransaction?.occurred_at
-    ? new Date(initialTransaction.occurred_at).toISOString().slice(0, 16)
-    : getCurrentDateTimeLocalValue();
+    ? getLocalDatetimeValue(new Date(initialTransaction.occurred_at))
+    : getLocalDatetimeValue();
 
   useEffect(() => {
     if (state.status === "success") {
