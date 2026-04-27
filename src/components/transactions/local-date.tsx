@@ -1,5 +1,22 @@
 "use client";
 
+import { useSyncExternalStore } from "react";
+
+const subscribe = () => () => {};
+
+const getServerSnapshot = () => "";
+
+const formatLocalDate = (value: string, format: "date" | "datetime") => {
+  const date = new Date(value);
+
+  return format === "datetime"
+    ? date.toLocaleString("ko-KR")
+    : date.toLocaleDateString("ko-KR", {
+        month: "2-digit",
+        day: "2-digit",
+      });
+};
+
 export function LocalDate({
   value,
   format = "date",
@@ -7,10 +24,11 @@ export function LocalDate({
   value: string;
   format?: "date" | "datetime";
 }) {
-  const formatted = new Date(value).toISOString().slice(
-    0,
-    format === "datetime" ? 16 : 10,
+  const formatted = useSyncExternalStore(
+    subscribe,
+    () => formatLocalDate(value, format),
+    getServerSnapshot,
   );
 
-  return <time dateTime={value}>{formatted.replace("T", " ")}</time>;
+  return <time dateTime={value}>{formatted}</time>;
 }
