@@ -12,7 +12,7 @@ export const toTransactionInsert = (
   benefit_label: input.benefitLabel || null,
   benefit_amount: input.benefitAmount,
   final_amount: input.finalAmount,
-  eligible_spend_amount: input.isPerformanceEligible ? input.amount : 0,
+  eligible_spend_amount: input.isPerformanceEligible ? input.finalAmount : 0,
   is_performance_eligible: input.isPerformanceEligible,
   payment_method: input.paymentMethod,
   ledger_category: input.ledgerCategory || null,

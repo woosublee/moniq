@@ -94,25 +94,13 @@ export async function registerUserCard(
 
 export async function setDefaultUserCard(userCardId: string) {
   const supabase = createSupabaseServerClient();
+  const { error } = await supabase.rpc("set_default_user_card", {
+    target_owner_id: serverEnv.moniqOwnerId,
+    target_user_card_id: userCardId,
+  });
 
-  const { error: unsetError } = await supabase
-    .from("user_cards")
-    .update({ is_default: false })
-    .eq("owner_id", serverEnv.moniqOwnerId)
-    .eq("is_default", true);
-
-  if (unsetError) {
-    throw new Error(unsetError.message);
-  }
-
-  const { error: setError } = await supabase
-    .from("user_cards")
-    .update({ is_default: true })
-    .eq("id", userCardId)
-    .eq("owner_id", serverEnv.moniqOwnerId);
-
-  if (setError) {
-    throw new Error(setError.message);
+  if (error) {
+    throw new Error(error.message);
   }
 
   revalidatePath("/cards");
@@ -121,51 +109,13 @@ export async function setDefaultUserCard(userCardId: string) {
 
 export async function deleteUserCard(userCardId: string) {
   const supabase = createSupabaseServerClient();
-  const { data: currentCard, error: currentCardError } = await supabase
-    .from("user_cards")
-    .select("id, is_default")
-    .eq("id", userCardId)
-    .eq("owner_id", serverEnv.moniqOwnerId)
-    .maybeSingle();
+  const { error } = await supabase.rpc("delete_user_card_and_promote_default", {
+    target_owner_id: serverEnv.moniqOwnerId,
+    target_user_card_id: userCardId,
+  });
 
-  if (currentCardError) {
-    throw new Error(currentCardError.message);
-  }
-
-  const { error: deleteError } = await supabase
-    .from("user_cards")
-    .delete()
-    .eq("id", userCardId)
-    .eq("owner_id", serverEnv.moniqOwnerId);
-
-  if (deleteError) {
-    throw new Error(deleteError.message);
-  }
-
-  if (currentCard?.is_default) {
-    const { data: nextCard, error: nextCardError } = await supabase
-      .from("user_cards")
-      .select("id")
-      .eq("owner_id", serverEnv.moniqOwnerId)
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle();
-
-    if (nextCardError) {
-      throw new Error(nextCardError.message);
-    }
-
-    if (nextCard) {
-      const { error: resetError } = await supabase
-        .from("user_cards")
-        .update({ is_default: true })
-        .eq("id", nextCard.id)
-        .eq("owner_id", serverEnv.moniqOwnerId);
-
-      if (resetError) {
-        throw new Error(resetError.message);
-      }
-    }
+  if (error) {
+    throw new Error(error.message);
   }
 
   revalidatePath("/cards");

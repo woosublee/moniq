@@ -77,10 +77,10 @@ export const parseTransactionInput = (raw: {
   isFixedCost: FormDataEntryValue | null;
   memo: FormDataEntryValue | null;
 }) => {
-  const amount = Number(raw.amount ?? Number.NaN);
-  const actualAmount = Number(raw.actualAmount ?? amount);
-  const benefitAmount = Number(raw.benefitAmount ?? 0);
-  const finalAmount = Number(raw.finalAmount ?? amount);
+  const amount = raw.amount ? Number(raw.amount) : Number.NaN;
+  const actualAmount = raw.actualAmount ? Number(raw.actualAmount) : amount;
+  const benefitAmount = raw.benefitAmount ? Number(raw.benefitAmount) : 0;
+  const finalAmount = raw.finalAmount ? Number(raw.finalAmount) : amount;
 
   const input = {
     occurredAt: String(raw.occurredAt ?? ""),

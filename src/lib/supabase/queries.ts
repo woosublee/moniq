@@ -21,11 +21,11 @@ export const getRecentTransactions = cache(
       .limit(50);
 
     if (filters.startDate) {
-      request = request.gte("occurred_at", `${filters.startDate}T00:00:00`);
+      request = request.gte("occurred_at", `${filters.startDate}T00:00:00+09:00`);
     }
 
     if (filters.endDate) {
-      request = request.lte("occurred_at", `${filters.endDate}T23:59:59`);
+      request = request.lte("occurred_at", `${filters.endDate}T23:59:59+09:00`);
     }
 
     if (filters.paymentMethod && filters.paymentMethod !== "all") {
