@@ -4,10 +4,15 @@ import { revalidatePath } from "next/cache";
 
 import { initialUserCardFormState } from "@/features/cards/constants";
 import { toUserCardInsert } from "@/features/cards/mappers";
-import type { UserCardFormState } from "@/features/cards/types";
+import type { CardRecord, UserCardFormState } from "@/features/cards/types";
 import { registerUserCardSchema } from "@/features/cards/validation";
 import { serverEnv } from "@/lib/server-env";
+import { searchCards } from "@/lib/supabase/queries";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+
+export async function searchCardCatalog(query: string): Promise<CardRecord[]> {
+  return searchCards(query);
+}
 
 export async function registerUserCard(
   _prevState: UserCardFormState,

@@ -1,39 +1,63 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 
+import { searchCardCatalog } from "@/app/cards/actions";
 import { RegisterCardForm } from "@/components/cards/register-card-form";
 import type { CardRecord, UserCardRecord } from "@/features/cards/types";
 
 export function CardAddDialog({
-  cards,
   userCards,
 }: {
-  cards: CardRecord[];
   userCards: UserCardRecord[];
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [cards, setCards] = useState<CardRecord[]>([]);
   const [selectedCard, setSelectedCard] = useState<CardRecord | null>(null);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [isSearching, startSearchTransition] = useTransition();
   const router = useRouter();
   const canUsePortal = typeof document !== "undefined";
   const registeredCardIds = useMemo(
     () => new Set(userCards.map((userCard) => userCard.card.id)),
     [userCards],
   );
-  const filteredCards = cards.filter((card) => {
-    const normalizedQuery = query.trim().toLowerCase();
 
-    if (!normalizedQuery) {
-      return true;
+  useEffect(() => {
+    if (!open) {
+      return;
     }
 
-    return `${card.issuer} ${card.name} ${card.searchable_text}`
-      .toLowerCase()
-      .includes(normalizedQuery);
-  });
+    let cancelled = false;
+    const timeoutId = window.setTimeout(
+      () => {
+        startSearchTransition(async () => {
+          try {
+            setSearchError(null);
+            const results = await searchCardCatalog(query);
+
+            if (!cancelled) {
+              setCards(results);
+            }
+          } catch {
+            if (!cancelled) {
+              setCards([]);
+              setSearchError("카드를 검색하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+            }
+          }
+        });
+      },
+      query.trim() ? 200 : 0,
+    );
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeoutId);
+    };
+  }, [open, query, startSearchTransition]);
 
   return (
     <>
@@ -86,13 +110,21 @@ export function CardAddDialog({
 
                 <div className="grid min-h-0 lg:grid-cols-[minmax(0,1fr)_360px]">
                   <div className="min-h-0 overflow-y-auto border-b border-slate-200 lg:border-b-0 lg:border-r">
-                    {filteredCards.length === 0 ? (
+                    {searchError ? (
+                      <div className="px-5 py-8 text-sm text-rose-600">
+                        {searchError}
+                      </div>
+                    ) : isSearching && cards.length === 0 ? (
+                      <div className="px-5 py-8 text-sm text-slate-500">
+                        검색 중입니다.
+                      </div>
+                    ) : cards.length === 0 ? (
                       <div className="px-5 py-8 text-sm text-slate-500">
                         검색 결과가 없습니다.
                       </div>
                     ) : (
                       <div className="divide-y divide-slate-100">
-                        {filteredCards.map((card) => {
+                        {cards.map((card) => {
                           const registered = registeredCardIds.has(card.id);
                           const selected = selectedCard?.id === card.id;
 

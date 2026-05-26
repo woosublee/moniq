@@ -13,38 +13,31 @@ export function TransactionEditDialog({
   transaction,
   userCards,
   trigger,
+  triggerClassName = "block",
 }: {
   transaction: TransactionRecord;
   userCards: UserCardRecord[];
   trigger?: React.ReactNode;
+  triggerClassName?: string;
 }) {
   const [open, setOpen] = useState(false);
   const canUsePortal = typeof document !== "undefined";
 
   return (
     <>
-      <div
-        role="button"
-        tabIndex={0}
+      <button
+        type="button"
         onClick={() => setOpen(true)}
-        onKeyDown={(event) => {
-          if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            setOpen(true);
-          }
-        }}
-        className="block"
+        className={`appearance-none border-0 bg-transparent p-0 text-inherit ${triggerClassName}`}
+        aria-label={trigger ? undefined : "수정"}
+        title={trigger ? undefined : "수정"}
       >
         {trigger ?? (
-          <span
-            className="inline-flex h-7 w-7 items-center justify-center rounded-md text-sm text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
-            aria-label="수정"
-            title="수정"
-          >
+          <span className="inline-flex h-7 w-7 items-center justify-center rounded-md text-sm text-slate-500 transition hover:bg-slate-100 hover:text-slate-900">
             ✎
           </span>
         )}
-      </div>
+      </button>
 
       {open && canUsePortal
         ? createPortal(

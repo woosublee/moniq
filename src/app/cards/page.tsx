@@ -1,13 +1,10 @@
 import { CardAddDialog } from "@/components/cards/card-add-dialog";
 import { PageHeader } from "@/components/layout/page-header";
 import { UserCardsList } from "@/components/cards/user-cards-list";
-import { getUserCards, searchCards } from "@/lib/supabase/queries";
+import { getUserCards } from "@/lib/supabase/queries";
 
 export default async function CardsPage() {
-  const [cards, cardCatalog] = await Promise.all([
-    getUserCards(),
-    searchCards(""),
-  ]);
+  const cards = await getUserCards();
   const defaultCard = cards.find((card) => card.is_default);
   const creditCards = cards.filter((card) => card.card.card_type === "credit_card").length;
   const checkCards = cards.filter((card) => card.card.card_type === "check_card").length;
@@ -18,7 +15,7 @@ export default async function CardsPage() {
         eyebrow="내 카드"
         title="내 카드를 관리하세요."
         description="가계부 입력에 사용할 카드를 등록하고 기본 결제 카드를 정합니다."
-        actions={<CardAddDialog cards={cardCatalog} userCards={cards} />}
+        actions={<CardAddDialog userCards={cards} />}
       />
 
       <section className="border-b border-slate-200 pb-3 text-sm text-slate-600">

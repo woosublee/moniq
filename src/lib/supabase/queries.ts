@@ -17,12 +17,32 @@ const getLocalDateBoundary = (
   timezoneOffset = "0",
 ) => {
   const offsetMinutes = Number(timezoneOffset);
+  const normalizedOffset = Number.isFinite(offsetMinutes) ? offsetMinutes : 0;
   const localDate = new Date(`${date}T${time}Z`);
 
-  return new Date(localDate.getTime() + offsetMinutes * 60_000).toISOString();
+  return new Date(localDate.getTime() + normalizedOffset * 60_000).toISOString();
 };
 
-const toDateInputValue = (date: Date) => date.toISOString().slice(0, 10);
+const toDateInputValue = (date: Date) => {
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(date.getUTCDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+};
+
+export const getCurrentMonthDateRange = (timezoneOffset = "0") => {
+  const offsetMinutes = Number(timezoneOffset);
+  const normalizedOffset = Number.isFinite(offsetMinutes) ? offsetMinutes : 0;
+  const localNow = new Date(Date.now() - normalizedOffset * 60_000);
+  const year = localNow.getUTCFullYear();
+  const month = localNow.getUTCMonth();
+
+  return {
+    startDate: toDateInputValue(new Date(Date.UTC(year, month, 1))),
+    endDate: toDateInputValue(new Date(Date.UTC(year, month + 1, 0))),
+  };
+};
 
 export const getRecentTransactions = cache(
   async (filters: TransactionFilters = {}): Promise<TransactionRecord[]> => {
@@ -67,17 +87,15 @@ export const getRecentTransactions = cache(
 );
 
 export const getCurrentMonthTransactions = cache(
-  async (): Promise<TransactionRecord[]> => {
-    const now = new Date();
-    const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-    const monthEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0));
+  async (timezoneOffset = "0"): Promise<TransactionRecord[]> => {
+    const { startDate, endDate } = getCurrentMonthDateRange(timezoneOffset);
     const supabase = createSupabaseServerClient();
     const { data, error } = await supabase
       .from("transactions")
       .select(transactionSelect)
       .eq("owner_id", serverEnv.moniqOwnerId)
-      .gte("occurred_at", getLocalDateBoundary(toDateInputValue(monthStart), "00:00:00"))
-      .lte("occurred_at", getLocalDateBoundary(toDateInputValue(monthEnd), "23:59:59"))
+      .gte("occurred_at", getLocalDateBoundary(startDate, "00:00:00", timezoneOffset))
+      .lte("occurred_at", getLocalDateBoundary(endDate, "23:59:59", timezoneOffset))
       .order("occurred_at", { ascending: false });
 
     if (error) {

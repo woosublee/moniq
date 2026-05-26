@@ -34,6 +34,9 @@ const getPaymentDisplay = (transaction: TransactionRecord) => {
 const tableColumns =
   "grid-cols-[32px_82px_minmax(180px,1.5fr)_minmax(150px,1fr)_100px_100px_90px_minmax(140px,1fr)_72px_110px_64px]";
 
+const rowContentColumns =
+  "grid-cols-[82px_minmax(180px,1.5fr)_minmax(150px,1fr)_100px_100px_90px_minmax(140px,1fr)_72px_110px_64px]";
+
 export function TransactionsTable({
   transactions,
   userCards,
@@ -236,57 +239,59 @@ export function TransactionsTable({
             const selected = selectedIdSet.has(transaction.id);
 
             return (
-              <TransactionEditDialog
+              <div
                 key={transaction.id}
-                transaction={transaction}
-                userCards={userCards}
-                trigger={
-                  <span
-                    className={`grid cursor-pointer ${tableColumns} gap-2 border-b border-slate-200/60 px-3 py-2 text-sm text-slate-600 transition-colors hover:bg-slate-100 ${
-                      selected ? "bg-emerald-50 hover:bg-emerald-50" : ""
-                    }`}
-                  >
-                    <span className="flex justify-center">
-                      <input
-                        type="checkbox"
-                        checked={selected}
-                        onChange={() => toggleTransaction(transaction.id)}
-                        onClick={(event) => event.stopPropagation()}
-                        className="h-4 w-4 rounded border-slate-300 accent-slate-950"
-                        aria-label={`${transaction.merchant_name} 선택`}
-                      />
-                    </span>
-                    <span className="text-center text-slate-500">
-                      <LocalDate value={transaction.occurred_at} />
-                    </span>
-                    <span className="min-w-0 text-left">
-                      <span className="block truncate font-medium text-slate-950">{transaction.merchant_name}</span>
-                    </span>
-                    <span className="min-w-0 text-left">
-                      <span className="block truncate text-slate-600">
-                        {getPaymentDisplay(transaction)}
+                className={`grid ${tableColumns} gap-2 border-b border-slate-200/60 px-3 py-2 text-sm text-slate-600 transition-colors hover:bg-slate-100 ${
+                  selected ? "bg-emerald-50 hover:bg-emerald-50" : ""
+                }`}
+              >
+                <span className="flex justify-center">
+                  <input
+                    type="checkbox"
+                    checked={selected}
+                    onChange={() => toggleTransaction(transaction.id)}
+                    className="h-4 w-4 rounded border-slate-300 accent-slate-950"
+                    aria-label={`${transaction.merchant_name} 선택`}
+                  />
+                </span>
+                <TransactionEditDialog
+                  transaction={transaction}
+                  userCards={userCards}
+                  triggerClassName="col-span-10 block text-left"
+                  trigger={
+                    <span className={`grid ${rowContentColumns} gap-2`}>
+                      <span className="text-center text-slate-500">
+                        <LocalDate value={transaction.occurred_at} />
                       </span>
+                      <span className="min-w-0 text-left">
+                        <span className="block truncate font-medium text-slate-950">{transaction.merchant_name}</span>
+                      </span>
+                      <span className="min-w-0 text-left">
+                        <span className="block truncate text-slate-600">
+                          {getPaymentDisplay(transaction)}
+                        </span>
+                      </span>
+                      <span className="text-right font-medium tabular-nums text-slate-700">
+                        {moneyFormatter.format(Number(transaction.actual_amount))}원
+                      </span>
+                      <span className="text-right font-semibold tabular-nums text-slate-950">
+                        {moneyFormatter.format(Number(transaction.final_amount))}원
+                      </span>
+                      <span className="text-center tabular-nums text-emerald-700">
+                        {Number(transaction.benefit_amount) > 0
+                          ? `${moneyFormatter.format(Number(transaction.benefit_amount))}원`
+                          : "-"}
+                      </span>
+                      <span className="min-w-0 text-center">
+                        <span className="block truncate text-slate-600">{transaction.benefit_label || ""}</span>
+                      </span>
+                      <span className="text-center">{transaction.is_performance_eligible ? "인정" : "제외"}</span>
+                      <span className="truncate text-center">{transaction.ledger_category || "-"}</span>
+                      <span className="text-center">{transaction.is_fixed_cost ? "고정" : "-"}</span>
                     </span>
-                    <span className="text-right font-medium tabular-nums text-slate-700">
-                      {moneyFormatter.format(Number(transaction.actual_amount))}원
-                    </span>
-                    <span className="text-right font-semibold tabular-nums text-slate-950">
-                      {moneyFormatter.format(Number(transaction.final_amount))}원
-                    </span>
-                    <span className="text-center tabular-nums text-emerald-700">
-                      {Number(transaction.benefit_amount) > 0
-                        ? `${moneyFormatter.format(Number(transaction.benefit_amount))}원`
-                        : "-"}
-                    </span>
-                    <span className="min-w-0 text-center">
-                      <span className="block truncate text-slate-600">{transaction.benefit_label || ""}</span>
-                    </span>
-                    <span className="text-center">{transaction.is_performance_eligible ? "인정" : "제외"}</span>
-                    <span className="truncate text-center">{transaction.ledger_category || "-"}</span>
-                    <span className="text-center">{transaction.is_fixed_cost ? "고정" : "-"}</span>
-                  </span>
-                }
-              />
+                  }
+                />
+              </div>
             );
           })}
         </div>

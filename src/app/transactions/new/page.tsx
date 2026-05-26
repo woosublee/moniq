@@ -5,20 +5,12 @@ import { TimezoneOffsetInput } from "@/components/transactions/timezone-offset-i
 import { TransactionCreateDialog } from "@/components/transactions/transaction-create-dialog";
 import { TransactionsTable } from "@/components/transactions/transactions-table";
 import type { PaymentMethod } from "@/features/transactions/types";
-import { getDefaultUserCard, getRecentTransactions, getUserCards } from "@/lib/supabase/queries";
-
-const toDateInputValue = (date: Date) => date.toISOString().slice(0, 10);
-
-const getCurrentMonthFilters = () => {
-  const now = new Date();
-  const startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-  const endDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0));
-
-  return {
-    startDate: toDateInputValue(startDate),
-    endDate: toDateInputValue(endDate),
-  };
-};
+import {
+  getCurrentMonthDateRange,
+  getDefaultUserCard,
+  getRecentTransactions,
+  getUserCards,
+} from "@/lib/supabase/queries";
 
 const controlClassName =
   "h-8 rounded-md border border-transparent bg-transparent px-2 text-sm text-slate-700 outline-none transition hover:bg-slate-100 focus:border-slate-300 focus:bg-white";
@@ -37,7 +29,7 @@ export default async function NewTransactionPage({
   }>;
 }) {
   const searchFilters = await searchParams;
-  const currentMonthFilters = getCurrentMonthFilters();
+  const currentMonthFilters = getCurrentMonthDateRange(searchFilters.timezoneOffset);
   const filters = {
     ...searchFilters,
     startDate: searchFilters.startDate ?? currentMonthFilters.startDate,
@@ -59,7 +51,7 @@ export default async function NewTransactionPage({
 
       <section className="border-b border-slate-200 pb-2">
         <form className="flex flex-wrap items-center gap-1.5 text-sm text-slate-500">
-          <TimezoneOffsetInput value={filters.timezoneOffset} />
+          <TimezoneOffsetInput value={filters.timezoneOffset} syncCurrentMonth />
           <span className="mr-1 font-medium text-slate-600">필터</span>
           <label className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 hover:bg-slate-100">
             <span>시작</span>
