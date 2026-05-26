@@ -8,15 +8,40 @@ import type {
 import { serverEnv } from "@/lib/server-env";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
+const transactionSelect =
+  "id, owner_id, occurred_at, merchant_name, amount, actual_amount, benefit_label, benefit_amount, final_amount, eligible_spend_amount, is_performance_eligible, payment_method, ledger_category, is_fixed_cost, user_card_id, memo, user_cards(id, owner_id, alias, is_default, card_id, card:cards(id, issuer, name, card_type, network, annual_fee, image_url, searchable_text, created_at))";
+
 const getLocalDateBoundary = (
   date: string,
   time: "00:00:00" | "23:59:59",
   timezoneOffset = "0",
 ) => {
   const offsetMinutes = Number(timezoneOffset);
+  const normalizedOffset = Number.isFinite(offsetMinutes) ? offsetMinutes : 0;
   const localDate = new Date(`${date}T${time}Z`);
 
-  return new Date(localDate.getTime() + offsetMinutes * 60_000).toISOString();
+  return new Date(localDate.getTime() + normalizedOffset * 60_000).toISOString();
+};
+
+const toDateInputValue = (date: Date) => {
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(date.getUTCDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+};
+
+export const getCurrentMonthDateRange = (timezoneOffset = "0") => {
+  const offsetMinutes = Number(timezoneOffset);
+  const normalizedOffset = Number.isFinite(offsetMinutes) ? offsetMinutes : 0;
+  const localNow = new Date(Date.now() - normalizedOffset * 60_000);
+  const year = localNow.getUTCFullYear();
+  const month = localNow.getUTCMonth();
+
+  return {
+    startDate: toDateInputValue(new Date(Date.UTC(year, month, 1))),
+    endDate: toDateInputValue(new Date(Date.UTC(year, month + 1, 0))),
+  };
 };
 
 export const getRecentTransactions = cache(
@@ -24,9 +49,7 @@ export const getRecentTransactions = cache(
     const supabase = createSupabaseServerClient();
     let request = supabase
       .from("transactions")
-      .select(
-        "id, owner_id, occurred_at, merchant_name, amount, actual_amount, benefit_label, benefit_amount, final_amount, eligible_spend_amount, is_performance_eligible, payment_method, ledger_category, is_fixed_cost, user_card_id, memo, user_cards(id, owner_id, alias, is_default, card_id, card:cards(id, issuer, name, card_type, network, annual_fee, image_url, searchable_text, created_at))",
-      )
+      .select(transactionSelect)
       .eq("owner_id", serverEnv.moniqOwnerId)
       .order("occurred_at", { ascending: false })
       .limit(50);
@@ -54,6 +77,26 @@ export const getRecentTransactions = cache(
     }
 
     const { data, error } = await request;
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return (data ?? []) as unknown as TransactionRecord[];
+  },
+);
+
+export const getCurrentMonthTransactions = cache(
+  async (timezoneOffset = "0"): Promise<TransactionRecord[]> => {
+    const { startDate, endDate } = getCurrentMonthDateRange(timezoneOffset);
+    const supabase = createSupabaseServerClient();
+    const { data, error } = await supabase
+      .from("transactions")
+      .select(transactionSelect)
+      .eq("owner_id", serverEnv.moniqOwnerId)
+      .gte("occurred_at", getLocalDateBoundary(startDate, "00:00:00", timezoneOffset))
+      .lte("occurred_at", getLocalDateBoundary(endDate, "23:59:59", timezoneOffset))
+      .order("occurred_at", { ascending: false });
 
     if (error) {
       throw new Error(error.message);

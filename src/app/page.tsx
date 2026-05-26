@@ -1,198 +1,290 @@
 import Link from "next/link";
 
-const highlights = [
-  {
-    title: "지출을 빠르게 기록",
-    description:
-      "금액, 사용처, 결제수단을 입력하고 카드 혜택이나 고정비 여부까지 함께 남길 수 있습니다.",
-  },
-  {
-    title: "내 카드를 연결",
-    description:
-      "자주 쓰는 카드를 등록해두면 지출을 기록할 때 결제 카드를 바로 선택할 수 있습니다.",
-  },
-  {
-    title: "혜택과 실적을 함께 정리",
-    description:
-      "할인·적립 금액과 실적 반영 여부를 기록해 카드 사용 내역을 더 정확히 관리합니다.",
-  },
-];
+import { TransactionCreateDialog } from "@/components/transactions/transaction-create-dialog";
+import { LocalDate } from "@/components/transactions/local-date";
+import type { TransactionRecord } from "@/features/transactions/types";
+import {
+  getCurrentMonthTransactions,
+  getDefaultUserCard,
+  getUserCards,
+} from "@/lib/supabase/queries";
 
-const guideItems = [
-  "오늘 쓴 지출을 금액과 사용처 중심으로 빠르게 기록하세요.",
-  "자주 쓰는 카드는 기본 카드로 설정해 입력 시간을 줄이세요.",
-  "할인이나 적립이 있었다면 혜택 메모와 금액을 함께 남겨두세요.",
-  "실적 제외 결제나 매달 반복되는 고정비도 따로 표시해 관리하세요.",
-];
+const moneyFormatter = new Intl.NumberFormat("ko-KR");
 
-const sampleComparison = [
-  {
-    name: "생활비 카드",
-    benefit: "2,400원 할인",
-    status: "이번 달 주 사용 카드",
-  },
-  {
-    name: "카페 할인 카드",
-    benefit: "600원 적립",
-    status: "카페 지출에 자주 사용",
-  },
-  {
-    name: "현금 지출",
-    benefit: "혜택 기록 없음",
-    status: "일반 지출로 정리",
-  },
-];
+const toMoney = (value: number | string | null | undefined) => Number(value) || 0;
 
-export default function Home() {
+const getCategorySummaries = (transactions: TransactionRecord[]) => {
+  const totals = new Map<string, { amount: number; count: number }>();
+
+  transactions.forEach((transaction) => {
+    const name = transaction.ledger_category || "미분류";
+    const current = totals.get(name) ?? { amount: 0, count: 0 };
+
+    totals.set(name, {
+      amount: current.amount + toMoney(transaction.final_amount),
+      count: current.count + 1,
+    });
+  });
+
+  return Array.from(totals, ([name, value]) => ({ name, ...value })).sort(
+    (a, b) => b.amount - a.amount,
+  );
+};
+
+export default async function Home() {
+  const [transactions, userCards, defaultUserCard] = await Promise.all([
+    getCurrentMonthTransactions(),
+    getUserCards(),
+    getDefaultUserCard(),
+  ]);
+
+  const summary = transactions.reduce(
+    (acc, transaction) => ({
+      actualAmount: acc.actualAmount + toMoney(transaction.actual_amount),
+      finalAmount: acc.finalAmount + toMoney(transaction.final_amount),
+      benefitAmount: acc.benefitAmount + toMoney(transaction.benefit_amount),
+      eligibleSpendAmount:
+        acc.eligibleSpendAmount + toMoney(transaction.eligible_spend_amount),
+      fixedCostAmount:
+        acc.fixedCostAmount +
+        (transaction.is_fixed_cost ? toMoney(transaction.final_amount) : 0),
+      benefitCount:
+        acc.benefitCount + (toMoney(transaction.benefit_amount) > 0 ? 1 : 0),
+    }),
+    {
+      actualAmount: 0,
+      finalAmount: 0,
+      benefitAmount: 0,
+      eligibleSpendAmount: 0,
+      fixedCostAmount: 0,
+      benefitCount: 0,
+    },
+  );
+  const categories = getCategorySummaries(transactions);
+  const maxCategoryAmount = Math.max(...categories.map((category) => category.amount), 1);
+  const recentTransactions = transactions.slice(0, 6);
+  const defaultCardName = defaultUserCard?.card
+    ? `${defaultUserCard.card.issuer} ${defaultUserCard.card.name}${defaultUserCard.alias ? ` (${defaultUserCard.alias})` : ""}`
+    : "없음";
+  const topCategory = categories[0]?.name ?? "아직 없음";
+
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,_#1d4ed8_0%,_#0f172a_38%,_#020617_100%)] text-white">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-6 py-10 sm:px-10 lg:px-12">
-        <header className="flex flex-col gap-6 rounded-[32px] border border-white/10 bg-white/6 p-8 shadow-2xl shadow-blue-950/30 backdrop-blur sm:p-10">
-          <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-blue-100/80">
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="rounded-full border border-blue-300/30 bg-blue-400/10 px-3 py-1">
-                카드 혜택까지 함께 보는 가계부
-              </span>
-              <span>지출 기록 · 내 카드 관리 · 혜택 메모</span>
-            </div>
-            <nav className="flex flex-wrap gap-2 text-sm font-medium">
-              <Link href="/transactions/new" className="rounded-full border border-white/12 bg-white/6 px-4 py-2 text-blue-50 transition hover:bg-white/10">
-                지출 내역
-              </Link>
-              <Link href="/cards" className="rounded-full border border-white/12 bg-white/6 px-4 py-2 text-blue-50 transition hover:bg-white/10">
-                내 카드
-              </Link>
-              <Link href="/cards/search" className="rounded-full border border-white/12 bg-white/6 px-4 py-2 text-blue-50 transition hover:bg-white/10">
-                카드 찾기
-              </Link>
-            </nav>
-          </div>
-
-          <div className="grid gap-10 lg:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.9fr)] lg:items-end">
-            <div className="space-y-6">
-              <div className="space-y-4">
-                <p className="text-sm font-medium uppercase tracking-[0.24em] text-blue-200/75">
-                  Spending and card benefits
-                </p>
-                <h1 className="max-w-3xl text-4xl font-semibold leading-tight text-white sm:text-5xl">
-                  내 지출과 카드를
-                  <br />
-                  한곳에서 정리하세요.
-                </h1>
-                <p className="max-w-2xl text-base leading-8 text-blue-50/78 sm:text-lg">
-                  현금, 카드, 포인트 지출을 기록하고 보유 카드를 연결해
-                  혜택 금액과 실적 반영 여부까지 함께 관리할 수 있습니다.
-                </p>
-              </div>
-
-              <div className="flex flex-wrap gap-3 text-sm font-medium">
-                <span className="rounded-full bg-white px-4 py-2 text-slate-950">
-                  지출과 카드 사용 내역을 함께 정리
-                </span>
-                <span className="rounded-full border border-white/15 bg-white/8 px-4 py-2 text-blue-50">
-                  할인·적립·실적 여부 기록
-                </span>
-              </div>
-
-              <div className="flex flex-wrap gap-3">
-                <Link
-                  href="/transactions/new"
-                  className="inline-flex h-12 items-center justify-center rounded-full bg-cyan-400 px-5 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300"
-                >
-                  지출 기록하러 가기
-                </Link>
-                <Link
-                  href="/cards/search"
-                  className="inline-flex h-12 items-center justify-center rounded-full border border-white/15 bg-white/6 px-5 text-sm font-medium text-blue-50 transition hover:bg-white/10"
-                >
-                  내 카드 등록하기
-                </Link>
-              </div>
-            </div>
-
-            <section className="rounded-[28px] border border-white/12 bg-slate-950/55 p-6 shadow-lg shadow-black/20">
-              <p className="text-sm font-medium text-blue-200/80">오늘의 지출 예시</p>
-              <div className="mt-5 space-y-3">
-                <div className="rounded-2xl border border-white/8 bg-white/6 px-4 py-3 text-sm text-blue-50/80">
-                  카페 12,000원 결제
-                </div>
-                {sampleComparison.map((item) => (
-                  <div
-                    key={item.name}
-                    className="rounded-2xl border border-white/10 bg-white/5 p-4"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-base font-semibold text-white">{item.name}</p>
-                        <p className="mt-1 text-sm text-blue-100/75">{item.status}</p>
-                      </div>
-                      <p className="text-sm font-semibold text-cyan-300">{item.benefit}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          </div>
-        </header>
-
-        <section className="grid gap-4 md:grid-cols-3">
-          {highlights.map((item) => (
-            <article
-              key={item.title}
-              className="rounded-[28px] border border-white/10 bg-white/6 p-6 backdrop-blur"
-            >
-              <p className="text-lg font-semibold text-white">{item.title}</p>
-              <p className="mt-3 text-sm leading-7 text-blue-50/72">
-                {item.description}
+    <>
+      <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="space-y-2">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-600">
+                대시보드
               </p>
-            </article>
-          ))}
-        </section>
-
-        <section className="grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(280px,0.85fr)]">
-          <article className="rounded-[28px] border border-white/10 bg-slate-950/55 p-7 backdrop-blur">
-            <div className="flex items-center justify-between gap-4">
               <div>
-                <p className="text-lg font-semibold text-white">Moniq로 정리할 수 있는 것</p>
-                <p className="mt-2 text-sm text-blue-100/70">
-                  지출을 입력할 때 카드와 혜택 정보를 함께 남겨두세요.
+                <h1 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
+                  이번 달 가계부
+                </h1>
+                <p className="mt-2 text-sm leading-6 text-slate-500">
+                  지출, 카테고리, 카드 혜택과 실적 금액을 월 단위로 정리합니다.
                 </p>
               </div>
-              <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-xs font-medium text-cyan-200">
-                한눈에 보기
-              </span>
             </div>
+            <div className="flex flex-wrap gap-2">
+              <TransactionCreateDialog
+                userCards={userCards}
+                defaultUserCardId={defaultUserCard?.id ?? null}
+              />
+              <Link
+                href="/transactions/new"
+                className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+              >
+                가계부 보기
+              </Link>
+            </div>
+          </div>
 
-            <ol className="mt-6 space-y-3">
-              {guideItems.map((item, index) => (
-                <li
-                  key={item}
-                  className="flex items-start gap-4 rounded-2xl border border-white/8 bg-white/4 px-4 py-4"
-                >
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-sm font-semibold text-slate-950">
-                    {index + 1}
-                  </span>
-                  <p className="pt-1 text-sm leading-7 text-blue-50/82">{item}</p>
-                </li>
+          <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <MetricCard label="이번 달 지출" value={`${moneyFormatter.format(summary.finalAmount)}원`} caption="혜택 반영 후" strong />
+            <MetricCard label="결제 금액" value={`${moneyFormatter.format(summary.actualAmount)}원`} caption="할인·적립 전" />
+            <MetricCard label="카드 혜택" value={`${moneyFormatter.format(summary.benefitAmount)}원`} caption={`${summary.benefitCount}건 기록`} accent />
+            <MetricCard label="실적 인정" value={`${moneyFormatter.format(summary.eligibleSpendAmount)}원`} caption="카드 실적 기준" />
+          </div>
+        </div>
+
+        <aside className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
+          <InsightCard label="가장 큰 카테고리" value={topCategory} caption={`${categories[0] ? moneyFormatter.format(categories[0].amount) : "0"}원`} />
+          <InsightCard label="이번 달 고정비" value={`${moneyFormatter.format(summary.fixedCostAmount)}원`} caption="반복 지출로 표시된 금액" />
+        </aside>
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)]">
+        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="mb-5 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-base font-semibold text-slate-950">카테고리별 지출</p>
+              <p className="mt-1 text-sm text-slate-500">이번 달 지출 분포</p>
+            </div>
+            <span className="rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600">
+              {transactions.length}건
+            </span>
+          </div>
+
+          {categories.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-sm text-slate-500">
+              아직 이번 달에 기록한 지출이 없습니다.
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {categories.slice(0, 6).map((category) => (
+                <div key={category.name}>
+                  <div className="mb-2 flex items-center justify-between gap-4 text-sm">
+                    <span className="font-medium text-slate-800">{category.name}</span>
+                    <span className="text-slate-500">
+                      {moneyFormatter.format(category.amount)}원 · {category.count}건
+                    </span>
+                  </div>
+                  <div className="h-2 rounded-full bg-slate-100">
+                    <div
+                      className="h-2 rounded-full bg-emerald-500"
+                      style={{
+                        width: `${Math.max(
+                          (category.amount / maxCategoryAmount) * 100,
+                          4,
+                        )}%`,
+                      }}
+                    />
+                  </div>
+                </div>
               ))}
-            </ol>
-          </article>
-
-          <article className="rounded-[28px] border border-white/10 bg-white/6 p-7 backdrop-blur">
-            <p className="text-lg font-semibold text-white">카드 혜택 관리 팁</p>
-            <div className="mt-5 space-y-4 text-sm leading-7 text-blue-50/78">
-              <p>
-                카드 혜택을 받은 결제가 전월 실적에 포함되지 않는 경우가 있습니다.
-                실적 제외 지출은 따로 표시해두면 월말에 카드 사용 현황을 더 쉽게 확인할 수 있어요.
-              </p>
-              <p>
-                통신비, 구독료처럼 매달 반복되는 지출은 고정비로 표시해두면
-                다음 달 소비 계획을 세울 때 도움이 됩니다.
-              </p>
             </div>
-          </article>
-        </section>
-      </div>
-    </main>
+          )}
+        </article>
+
+        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-base font-semibold text-slate-950">카드/혜택 요약</p>
+              <p className="mt-1 text-sm text-slate-500">결제 카드와 혜택 기록</p>
+            </div>
+            <Link
+              href="/cards"
+              className="rounded-md px-2 py-1 text-sm font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+            >
+              카드 관리
+            </Link>
+          </div>
+
+          <div className="divide-y divide-slate-100 border-y border-slate-200 text-sm">
+            <SummaryRow label="기본 결제 카드" value={defaultCardName} />
+            <SummaryRow label="등록한 카드" value={`${userCards.length}장`} />
+            <SummaryRow label="혜택 기록" value={`${summary.benefitCount}건`} />
+            <SummaryRow label="아낀 금액" value={`${moneyFormatter.format(summary.benefitAmount)}원`} accent />
+          </div>
+        </article>
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-base font-semibold text-slate-950">최근 거래</p>
+            <p className="mt-1 text-sm text-slate-500">최근 기록한 지출</p>
+          </div>
+          <Link
+            href="/transactions/new"
+            className="rounded-md px-2 py-1 text-sm font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+          >
+            전체 보기
+          </Link>
+        </div>
+
+        {recentTransactions.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-sm text-slate-500">
+            첫 지출을 기록하면 이곳에 최근 거래가 표시됩니다.
+          </div>
+        ) : (
+          <div className="divide-y divide-slate-100 border-y border-slate-200">
+            {recentTransactions.map((transaction) => (
+              <div
+                key={transaction.id}
+                className="flex flex-col gap-2 py-3 text-sm sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div className="min-w-0">
+                  <p className="truncate font-medium text-slate-950">
+                    {transaction.merchant_name}
+                  </p>
+                  <p className="mt-1 text-slate-500">
+                    <LocalDate value={transaction.occurred_at} /> · {transaction.ledger_category || "미분류"}
+                  </p>
+                </div>
+                <div className="flex items-center justify-between gap-4 sm:justify-end">
+                  {toMoney(transaction.benefit_amount) > 0 ? (
+                    <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                      혜택 {moneyFormatter.format(toMoney(transaction.benefit_amount))}원
+                    </span>
+                  ) : null}
+                  <p className="text-right font-semibold text-slate-950">
+                    {moneyFormatter.format(toMoney(transaction.final_amount))}원
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+    </>
+  );
+}
+
+function MetricCard({
+  label,
+  value,
+  caption,
+  accent = false,
+  strong = false,
+}: {
+  label: string;
+  value: string;
+  caption: string;
+  accent?: boolean;
+  strong?: boolean;
+}) {
+  return (
+    <article className={accent ? "rounded-xl border border-emerald-200 bg-emerald-50 p-4" : "rounded-xl border border-slate-200 bg-slate-50 p-4"}>
+      <p className={accent ? "text-sm font-medium text-emerald-700" : "text-sm text-slate-500"}>{label}</p>
+      <p className={accent ? "mt-2 text-2xl font-semibold text-emerald-900" : strong ? "mt-2 text-2xl font-semibold text-slate-950" : "mt-2 text-2xl font-semibold text-slate-900"}>{value}</p>
+      <p className={accent ? "mt-1 text-sm text-emerald-700" : "mt-1 text-sm text-slate-500"}>{caption}</p>
+    </article>
+  );
+}
+
+function InsightCard({
+  label,
+  value,
+  caption,
+}: {
+  label: string;
+  value: string;
+  caption: string;
+}) {
+  return (
+    <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <p className="text-sm text-slate-500">{label}</p>
+      <p className="mt-2 text-2xl font-semibold text-slate-950">{value}</p>
+      <p className="mt-1 text-sm text-slate-500">{caption}</p>
+    </article>
+  );
+}
+
+function SummaryRow({
+  label,
+  value,
+  accent = false,
+}: {
+  label: string;
+  value: string;
+  accent?: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4 py-3">
+      <span className="text-slate-500">{label}</span>
+      <span className={accent ? "font-semibold text-emerald-700" : "font-semibold text-slate-950"}>{value}</span>
+    </div>
   );
 }

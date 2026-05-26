@@ -1,6 +1,5 @@
-import Link from "next/link";
-
-import { RegisterCardForm } from "@/components/cards/register-card-form";
+import { PageHeader } from "@/components/layout/page-header";
+import { RegisterCardDialog } from "@/components/cards/register-card-dialog";
 import { getUserCards, searchCards } from "@/lib/supabase/queries";
 
 export default async function CardSearchPage({
@@ -16,86 +15,80 @@ export default async function CardSearchPage({
   const registeredCardIds = new Set(userCards.map((userCard) => userCard.card.id));
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,_#1d4ed8_0%,_#0f172a_38%,_#020617_100%)] text-white">
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-6 py-10 sm:px-10 lg:px-12">
-        <header className="rounded-[28px] border border-white/10 bg-white/6 p-8 backdrop-blur">
-          <div className="flex flex-wrap gap-2 text-sm font-medium">
-            <Link href="/" className="rounded-full border border-white/12 bg-white/6 px-4 py-2 text-blue-50 transition hover:bg-white/10">
-              홈
-            </Link>
-            <Link href="/transactions/new" className="rounded-full border border-white/12 bg-white/6 px-4 py-2 text-blue-50 transition hover:bg-white/10">
-              지출 내역
-            </Link>
-            <Link href="/cards" className="rounded-full border border-white/12 bg-white/6 px-4 py-2 text-blue-50 transition hover:bg-white/10">
-              내 카드
-            </Link>
-          </div>
-          <div className="mt-4 space-y-3">
-            <p className="text-sm font-medium uppercase tracking-[0.22em] text-blue-200/70">
-              카드 찾기
-            </p>
-            <h1 className="text-3xl font-semibold text-white sm:text-4xl">
-              사용 중인 카드를 찾아 등록하세요.
-            </h1>
-            <p className="max-w-2xl text-sm leading-7 text-blue-50/78 sm:text-base">
-              카드사나 카드명으로 검색한 뒤, 지출 기록에 사용할 카드를 내 카드로 추가할 수 있습니다.
-            </p>
-          </div>
-        </header>
+    <>
+      <PageHeader
+        eyebrow="카드 추가"
+        title="사용 중인 카드를 찾아 등록하세요."
+        description="카드사나 카드명으로 검색한 뒤 가계부 입력에 사용할 카드로 추가합니다."
+      />
 
-        <section className="rounded-[28px] border border-white/10 bg-slate-950/55 p-7 backdrop-blur">
-          <form className="flex flex-col gap-3 sm:flex-row">
-            <input
-              type="text"
-              name="query"
-              defaultValue={query}
-              placeholder="카드사 또는 카드명으로 검색"
-              className="h-12 flex-1 rounded-full border border-white/10 bg-white/6 px-5 text-sm text-white outline-none placeholder:text-blue-100/35"
-            />
-            <button
-              type="submit"
-              className="inline-flex h-12 items-center justify-center rounded-full bg-white px-5 text-sm font-semibold text-slate-950 transition hover:bg-blue-50"
-            >
-              검색
-            </button>
-          </form>
+      <section className="border-b border-slate-200 pb-3">
+        <form className="flex flex-wrap items-center gap-2 text-sm">
+          <input
+            type="text"
+            name="query"
+            defaultValue={query}
+            placeholder="카드사 또는 카드명"
+            className="h-8 w-full rounded-md border border-transparent bg-transparent px-2 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 hover:bg-slate-100 focus:border-slate-300 focus:bg-white sm:w-72"
+          />
+          <button
+            type="submit"
+            className="inline-flex h-8 items-center justify-center rounded-md px-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+          >
+            검색
+          </button>
+        </form>
+      </section>
 
-          {cards.length === 0 ? (
-            <div className="mt-6 rounded-2xl border border-dashed border-white/12 bg-white/4 px-5 py-8 text-sm text-blue-100/70">
-              <p className="text-base font-semibold text-white">
-                {query ? "검색 결과가 없어요." : "카드사나 카드명을 입력해 보세요."}
-              </p>
-              <p className="mt-2 leading-7">
-                {query
-                  ? "카드명이나 카드사를 다른 표현으로 입력해 다시 찾아보세요."
-                  : "보유한 카드를 찾은 뒤 내 카드로 추가하면 지출 기록에 바로 사용할 수 있습니다."}
-              </p>
-            </div>
-          ) : (
-            <div className="mt-6 grid gap-4 md:grid-cols-2">
-              {cards.map((card) => (
-                <article
-                key={card.id}
-                className="rounded-[24px] border border-white/10 bg-white/5 p-5"
-              >
-                <p className="text-base font-semibold text-white">
-                  {card.issuer} {card.name}
-                </p>
-                <p className="mt-2 text-sm text-blue-100/72">
-                  {card.card_type === "credit_card" ? "신용카드" : "체크카드"}
-                  {card.network ? ` · ${card.network}` : ""}
-                  {typeof card.annual_fee === "number" ? ` · 연회비 ${card.annual_fee.toLocaleString("ko-KR")}원` : ""}
-                </p>
-                <RegisterCardForm
-                  card={card}
-                  disabled={registeredCardIds.has(card.id)}
-                />
-                </article>
-              ))}
-            </div>
-          )}
+      {cards.length === 0 ? (
+        <section className="border-b border-slate-200 py-8 text-sm text-slate-500">
+          <p className="font-semibold text-slate-950">
+            {query ? "검색 결과가 없어요." : "카드사나 카드명을 입력해 보세요."}
+          </p>
+          <p className="mt-1">
+            {query
+              ? "카드명이나 카드사를 다른 표현으로 입력해 다시 찾아보세요."
+              : "보유한 카드를 찾은 뒤 내 카드로 추가하면 지출 기록에 바로 사용할 수 있습니다."}
+          </p>
         </section>
-      </div>
-    </main>
+      ) : (
+        <section className="divide-y divide-slate-100 border-y border-slate-200 bg-white">
+          {cards.map((card) => {
+            const registered = registeredCardIds.has(card.id);
+
+            return (
+              <article key={card.id} className="py-4 hover:bg-slate-50/70">
+                <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="truncate font-medium text-slate-950">
+                        {card.issuer} {card.name}
+                      </p>
+                      {registered ? (
+                        <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                          추가됨
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="mt-1 text-sm text-slate-500">
+                      {card.card_type === "credit_card" ? "신용카드" : "체크카드"}
+                      {card.network ? ` · ${card.network}` : ""}
+                      {typeof card.annual_fee === "number" ? ` · 연회비 ${card.annual_fee.toLocaleString("ko-KR")}원` : ""}
+                    </p>
+                  </div>
+                  {registered ? (
+                    <span className="hidden text-sm font-medium text-emerald-700 lg:block">
+                      추가됨
+                    </span>
+                  ) : (
+                    <RegisterCardDialog card={card} />
+                  )}
+                </div>
+              </article>
+            );
+          })}
+        </section>
+      )}
+    </>
   );
 }
