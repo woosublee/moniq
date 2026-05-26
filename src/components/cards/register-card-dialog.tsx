@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { RegisterCardForm } from "@/components/cards/register-card-form";
@@ -9,6 +9,23 @@ import type { CardRecord } from "@/features/cards/types";
 export function RegisterCardDialog({ card }: { card: CardRecord }) {
   const [open, setOpen] = useState(false);
   const canUsePortal = typeof document !== "undefined";
+  const titleId = `register-card-title-${card.id}`;
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", closeOnEscape);
+
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [open]);
 
   return (
     <>
@@ -27,12 +44,15 @@ export function RegisterCardDialog({ card }: { card: CardRecord }) {
               onClick={() => setOpen(false)}
             >
               <div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby={titleId}
                 className="max-h-[calc(100vh-4rem)] w-full max-w-xl overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl shadow-slate-950/15"
                 onClick={(event) => event.stopPropagation()}
               >
                 <div className="mb-5 flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-lg font-semibold text-slate-950">내 카드로 등록</p>
+                    <p id={titleId} className="text-lg font-semibold text-slate-950">내 카드로 등록</p>
                     <p className="mt-2 text-sm leading-6 text-slate-500">
                       {card.issuer} {card.name}을 지출 입력에 사용할 카드로 추가합니다.
                     </p>

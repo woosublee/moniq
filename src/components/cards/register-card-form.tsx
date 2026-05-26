@@ -33,6 +33,7 @@ export function RegisterCardForm({
         <input
           name="alias"
           type="text"
+          maxLength={60}
           className="mt-1.5 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-950 outline-none placeholder:text-slate-400 transition focus:border-emerald-500"
           placeholder="예: 생활비 카드, 카페 할인 카드"
         />

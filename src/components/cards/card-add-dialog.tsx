@@ -59,6 +59,22 @@ export function CardAddDialog({
     };
   }, [open, query, startSearchTransition]);
 
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", closeOnEscape);
+
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [open]);
+
   return (
     <>
       <button
@@ -76,13 +92,16 @@ export function CardAddDialog({
               onClick={() => setOpen(false)}
             >
               <div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="add-card-title"
                 className="grid max-h-[calc(100vh-4rem)] w-full max-w-4xl grid-rows-[auto_minmax(0,1fr)] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-950/15"
                 onClick={(event) => event.stopPropagation()}
               >
                 <div className="border-b border-slate-200 p-5">
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <p className="text-lg font-semibold text-slate-950">카드 추가</p>
+                      <p id="add-card-title" className="text-lg font-semibold text-slate-950">카드 추가</p>
                       <p className="mt-2 text-sm text-slate-500">
                         보유한 카드를 찾아 내 카드로 등록하세요.
                       </p>
@@ -171,6 +190,7 @@ export function CardAddDialog({
                           <CardPreview card={selectedCard} />
                           <div className="mt-5">
                             <RegisterCardForm
+                              key={selectedCard.id}
                               card={selectedCard}
                               onSuccess={() => {
                                 setSelectedCard(null);

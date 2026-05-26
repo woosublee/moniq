@@ -63,7 +63,7 @@ export default async function Home() {
   const categories = getCategorySummaries(transactions);
   const maxCategoryAmount = Math.max(...categories.map((category) => category.amount), 1);
   const recentTransactions = transactions.slice(0, 6);
-  const defaultCardName = defaultUserCard
+  const defaultCardName = defaultUserCard?.card
     ? `${defaultUserCard.card.issuer} ${defaultUserCard.card.name}${defaultUserCard.alias ? ` (${defaultUserCard.alias})` : ""}`
     : "없음";
   const topCategory = categories[0]?.name ?? "아직 없음";

@@ -327,7 +327,8 @@ function BulkToolbar({
       <button
         type="button"
         onClick={onClear}
-        className="rounded-md px-2 py-1 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+        disabled={pending}
+        className="rounded-md px-2 py-1 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 disabled:cursor-not-allowed disabled:text-slate-300"
       >
         선택 해제
       </button>

@@ -63,6 +63,14 @@ export const transactionInputSchema = z
         path: ["userCardId"],
       });
     }
+
+    if (value.benefitAmount > value.actualAmount) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "할인/적립 금액이 결제 금액보다 클 수 없습니다.",
+        path: ["benefitAmount"],
+      });
+    }
   });
 
 export const parseTransactionInput = (raw: {
