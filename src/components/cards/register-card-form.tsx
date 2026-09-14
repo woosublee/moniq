@@ -1,51 +1,76 @@
 "use client";
 
-import { useActionState } from "react";
+import { useEffect } from "react";
 
 import { registerUserCard } from "@/app/cards/actions";
+import { LedgerRequestFields, useLedgerActionState } from "@/components/transactions/ledger-request-fields";
 import { initialUserCardFormState } from "@/features/cards/constants";
 import type { CardRecord } from "@/features/cards/types";
 
 export function RegisterCardForm({
   card,
-  disabled = false,
+  onSuccess,
+  onLockChange,
+  month,
 }: {
   card: CardRecord;
-  disabled?: boolean;
+  month?: string;
+  onSuccess?: () => void;
+  onLockChange?: (locked: boolean) => void;
 }) {
-  const [state, formAction] = useActionState(
+  const [state, formAction, pending, onSubmit] = useLedgerActionState(
     registerUserCard,
     initialUserCardFormState,
+    { create: true, month },
   );
 
+  useEffect(() => {
+    if (state.status === "success") {
+      onSuccess?.();
+    }
+  }, [onSuccess, state.status]);
+
+  const complete = state.status === "success" || state.status === "saved_needs_review";
+  useEffect(() => { onLockChange?.(pending || state.status === "outcome_unknown"); }, [pending, state.status, onLockChange]);
   return (
-    <form action={formAction} className="mt-4 space-y-3 rounded-2xl border border-white/10 bg-slate-950/45 p-4">
+    <form action={formAction} onSubmit={onSubmit} noValidate={state.status === "outcome_unknown"} className="space-y-4 text-sm">
+      <LedgerRequestFields create month={month} state={state} />
       <input type="hidden" name="cardId" value={card.id} />
-      <label className="block text-sm text-blue-50/82">
+      <label className="block text-slate-700">
         카드 별칭
         <input
           name="alias"
+          disabled={pending || complete || state.status === "outcome_unknown"}
           type="text"
-          disabled={disabled}
-          className="mt-2 w-full rounded-2xl border border-white/10 bg-white/6 px-4 py-3 text-sm text-white outline-none placeholder:text-blue-100/35 disabled:cursor-not-allowed disabled:opacity-50"
+          maxLength={60}
+          className="mt-1.5 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-950 outline-none placeholder:text-slate-400 transition focus:border-emerald-500"
           placeholder="예: 생활비 카드, 카페 할인 카드"
         />
-        <p className="mt-2 text-xs text-blue-100/55">비워두면 카드명으로 표시됩니다.</p>
+        <p className="mt-1.5 text-xs text-slate-500">비워두면 카드명으로 표시됩니다.</p>
       </label>
-      {disabled ? (
-        <p className="text-xs text-cyan-200">이미 추가된 카드입니다.</p>
-      ) : state.message ? (
-        <p className={state.status === "success" ? "text-xs text-emerald-200" : "text-xs text-rose-200"}>
-          {state.message}
+
+      {state.message ? (
+        <p className={state.status === "success" ? "text-sm text-emerald-700" : "text-sm text-rose-600"}>
+          {state.status === "outcome_unknown" ? `${state.message} 확인 전에는 편집할 수 없습니다. 아래 버튼은 최초 등록 요청을 다시 확인합니다.` : state.message}
         </p>
       ) : null}
-      <button
-        type="submit"
-        disabled={disabled}
-        className="inline-flex h-11 items-center justify-center rounded-full bg-cyan-400 px-4 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:bg-cyan-400/50"
-      >
-        {disabled ? "이미 추가됨" : "카드 추가"}
-      </button>
+
+      <div className="flex justify-end">
+        <RegisterCardSubmitButton pending={pending} complete={complete} retry={state.status === "outcome_unknown"} />
+      </div>
     </form>
+  );
+}
+
+function RegisterCardSubmitButton({ retry, pending, complete }: { retry: boolean; pending: boolean; complete: boolean }) {
+
+  return (
+    <button
+      type="submit"
+      disabled={pending || complete}
+      className="inline-flex h-10 items-center justify-center rounded-lg bg-slate-950 px-4 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400"
+    >
+      {complete ? "저장됨 · 최신 자료 확인" : pending ? "등록 중" : retry ? "같은 요청 확인 / 재시도" : "내 카드로 등록"}
+    </button>
   );
 }

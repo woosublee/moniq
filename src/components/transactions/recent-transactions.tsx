@@ -8,7 +8,7 @@ const paymentMethodLabel: Record<PaymentMethod, string> = {
   points: "포인트",
 };
 
-const moneyFormatter = new Intl.NumberFormat("ko-KR");
+import { formatWon, getTransactionAmounts } from "@/lib/card-workspace/view-model";
 
 export function RecentTransactions({
   transactions,
@@ -55,7 +55,7 @@ export function RecentTransactions({
                   <span><LocalDate value={transaction.occurred_at} format="datetime" /></span>
                   {transaction.user_cards ? (
                     <span>
-                      {transaction.user_cards.alias || `${transaction.user_cards.card.issuer} ${transaction.user_cards.card.name}`}
+                      {transaction.user_cards.card.issuer} {transaction.user_cards.card.name}{transaction.user_cards.alias ? ` (${transaction.user_cards.alias})` : ""}
                     </span>
                   ) : null}
                 </div>
@@ -66,10 +66,10 @@ export function RecentTransactions({
 
               <div className="text-left sm:text-right">
                 <p className="text-lg font-semibold text-white">
-                  {moneyFormatter.format(Number(transaction.amount))}원
+                  {formatWon(transaction.amount)}
                 </p>
                 <p className="mt-1 text-xs text-blue-100/68">
-                  실적 인정 {moneyFormatter.format(Number(transaction.eligible_spend_amount))}원
+                  실적 인정 {formatWon(getTransactionAmounts(transaction).eligibleSpendAmount)}
                 </p>
               </div>
             </article>

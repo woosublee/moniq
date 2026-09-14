@@ -1,298 +1,70 @@
 "use client";
-
-import { useActionState, useEffect } from "react";
-
-import { SubmitButton } from "@/components/transactions/submit-button";
-import { TimezoneOffsetInput } from "@/components/transactions/timezone-offset-input";
+import { useEffect, useState } from "react";
+import { LedgerActionFeedback, LedgerRequestFields, useLedgerActionState } from "./ledger-request-fields";
 import { createTransaction } from "@/app/transactions/new/actions";
+import { parseSeoulInstant } from "@/features/card-benefits/periods";
+import { PaymentDetailsFields } from "./payment-details-fields";
+import { IncomeForm } from "@/components/ledger/income-form";
+import type { IncomeEntryRecord } from "@/features/ledger/types";
+import { TransactionCalculationSummary } from "./transaction-calculation-summary";
 import type { UserCardRecord } from "@/features/cards/types";
-import type {
-  TransactionFormState,
-  TransactionRecord,
-} from "@/features/transactions/types";
-import {
-  initialTransactionFormState,
-  ledgerCategories,
-  paymentMethodOptions,
-} from "@/features/transactions/constants";
+import type { TransactionFormState, TransactionRecord } from "@/features/transactions/types";
+import { initialTransactionFormState, ledgerCategories, paymentMethodOptions } from "@/features/transactions/constants";
 
-const getLocalDatetimeValue = (date: Date = new Date()) => {
-  const timezoneOffset = date.getTimezoneOffset() * 60_000;
-
-  return new Date(date.getTime() - timezoneOffset).toISOString().slice(0, 16);
+type SharedFormProps = {
+  userCards?: UserCardRecord[]; defaultUserCardId: string | null; compact?: boolean; month?: string;
+  onSuccess?: () => void; onLockChange?: (locked: boolean) => void; action?: (previous: TransactionFormState, data: FormData) => Promise<TransactionFormState>;
 };
-
-const fieldClassName =
-  "mt-2 w-full rounded-2xl border border-white/10 bg-white/6 px-4 py-3 text-sm text-white outline-none transition placeholder:text-blue-100/40 focus:border-cyan-300/70 focus:bg-white/8";
-
-const labelClassName = "text-sm font-medium text-blue-50/88";
-
-export function TransactionForm({
-  userCards = [],
-  defaultUserCardId,
-  compact = false,
-  initialTransaction,
-  onSuccess,
-  action,
-}: {
-  userCards?: UserCardRecord[];
-  defaultUserCardId: string | null;
-  compact?: boolean;
-  initialTransaction?: TransactionRecord | null;
-  onSuccess?: () => void;
-  action?: (prevState: TransactionFormState, formData: FormData) => Promise<TransactionFormState>;
-}) {
-  const [state, formAction] = useActionState(
-    action ?? createTransaction,
-    initialTransactionFormState,
-  );
-
-  const defaultOccurredAt = initialTransaction?.occurred_at
-    ? getLocalDatetimeValue(new Date(initialTransaction.occurred_at))
-    : getLocalDatetimeValue();
-
-  useEffect(() => {
-    if (state.status === "success") {
-      onSuccess?.();
-    }
-  }, [onSuccess, state.status]);
-
-  return (
-    <section className={compact ? "" : "rounded-[28px] border border-white/10 bg-white/6 p-7 backdrop-blur"}>
-      {compact ? null : (
-        <div className="space-y-2">
-          <p className="text-lg font-semibold text-white">지출 입력</p>
-          <p className="text-sm leading-7 text-blue-100/72">
-            금액, 사용처, 결제수단을 입력하고 필요한 경우 카드 혜택도 함께 기록하세요.
-          </p>
-        </div>
-      )}
-
-      <form action={formAction} className={compact ? "space-y-5" : "mt-6 space-y-5"}>
-        <TimezoneOffsetInput />
-        <div className="grid gap-5 sm:grid-cols-2">
-          <label className="block">
-            <span className={labelClassName}>금액</span>
-            <input
-              name="amount"
-              type="number"
-              min="1"
-              step="1"
-              className={fieldClassName}
-              defaultValue={initialTransaction ? Number(initialTransaction.amount) : undefined}
-              placeholder="예: 12000"
-              required
-            />
-            <FieldError errors={state.fieldErrors?.amount} />
-          </label>
-
-          <label className="block">
-            <span className={labelClassName}>사용처</span>
-            <input
-              name="merchantName"
-              type="text"
-              className={fieldClassName}
-              defaultValue={initialTransaction?.merchant_name ?? ""}
-              placeholder="예: 스타벅스 강남R"
-              required
-            />
-            <FieldError errors={state.fieldErrors?.merchantName} />
-          </label>
-        </div>
-
-        <div className="grid gap-5 sm:grid-cols-2">
-          <label className="block">
-            <span className={labelClassName}>사용 일시</span>
-            <input
-              name="occurredAt"
-              type="datetime-local"
-              className={fieldClassName}
-              defaultValue={defaultOccurredAt}
-              required
-            />
-            <FieldError errors={state.fieldErrors?.occurredAt} />
-          </label>
-
-          <label className="block">
-            <span className={labelClassName}>결제수단</span>
-            <select
-              name="paymentMethod"
-              className={fieldClassName}
-              defaultValue={initialTransaction?.payment_method ?? "credit_card"}
-            >
-              {paymentMethodOptions.map((option) => (
-                <option key={option.value} value={option.value} className="text-slate-950">
-                  {option.label}
-                </option>
-              ))}
-            </select>
-            <FieldError errors={state.fieldErrors?.paymentMethod} />
-          </label>
-        </div>
-
-        <div className="grid gap-5 sm:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
-          <label className="block">
-            <span className={labelClassName}>결제 카드</span>
-            <select
-              name="userCardId"
-              className={fieldClassName}
-              defaultValue={initialTransaction?.user_card_id ?? defaultUserCardId ?? ""}
-            >
-              <option value="" className="text-slate-950">
-                카드 미선택
-              </option>
-              {userCards.map((userCard) => (
-                <option key={userCard.id} value={userCard.id} className="text-slate-950">
-                  {userCard.alias || `${userCard.card.issuer} ${userCard.card.name}`}
-                </option>
-              ))}
-            </select>
-            {userCards.length > 0 ? (
-              <p className="mt-2 text-xs text-blue-100/55">
-                카드를 선택하면 지출 내역에서 카드별 사용 내역을 함께 확인할 수 있습니다.
-              </p>
-            ) : (
-              <p className="mt-2 text-xs text-cyan-200">
-                카드를 등록하면 지출에 결제 카드를 연결할 수 있어요.
-              </p>
-            )}
-            <FieldError errors={state.fieldErrors?.userCardId} />
-          </label>
-
-          <label className="block">
-            <span className={labelClassName}>카테고리</span>
-            <select
-              name="ledgerCategory"
-              className={fieldClassName}
-              defaultValue={initialTransaction?.ledger_category ?? ""}
-            >
-              <option value="" className="text-slate-950">선택 안 함</option>
-              {ledgerCategories.map((category) => (
-                <option key={category} value={category} className="text-slate-950">
-                  {category}
-                </option>
-              ))}
-            </select>
-            <FieldError errors={state.fieldErrors?.ledgerCategory} />
-          </label>
-        </div>
-
-        <div className="grid gap-5 sm:grid-cols-3">
-          <label className="block">
-            <span className={labelClassName}>결제 금액</span>
-            <input
-              name="actualAmount"
-              type="number"
-              min="0"
-              step="1"
-              className={fieldClassName}
-              defaultValue={initialTransaction ? Number(initialTransaction.actual_amount) : undefined}
-              placeholder="비워두면 금액과 같게 저장됩니다"
-            />
-            <FieldError errors={state.fieldErrors?.actualAmount} />
-          </label>
-
-          <label className="block">
-            <span className={labelClassName}>할인/적립 금액</span>
-            <input
-              name="benefitAmount"
-              type="number"
-              min="0"
-              step="1"
-              className={fieldClassName}
-              defaultValue={initialTransaction ? Number(initialTransaction.benefit_amount) : 0}
-            />
-            <FieldError errors={state.fieldErrors?.benefitAmount} />
-          </label>
-
-          <label className="block">
-            <span className={labelClassName}>최종 지출</span>
-            <input
-              name="finalAmount"
-              type="number"
-              min="0"
-              step="1"
-              className={fieldClassName}
-              defaultValue={initialTransaction ? Number(initialTransaction.final_amount) : undefined}
-              placeholder="비워두면 금액과 같게 저장됩니다"
-            />
-            <FieldError errors={state.fieldErrors?.finalAmount} />
-          </label>
-        </div>
-
-        <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
-          <label className="block">
-            <span className={labelClassName}>혜택 메모</span>
-            <input
-              name="benefitLabel"
-              type="text"
-              className={fieldClassName}
-              defaultValue={initialTransaction?.benefit_label ?? ""}
-              placeholder="예: 스타벅스 20% 할인"
-            />
-            <FieldError errors={state.fieldErrors?.benefitLabel} />
-          </label>
-
-          <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-slate-950/45 px-4 py-4 text-sm text-blue-50/82">
-            <input
-              name="isPerformanceEligible"
-              type="checkbox"
-              defaultChecked={initialTransaction?.is_performance_eligible ?? true}
-              className="h-4 w-4 rounded border-white/20"
-            />
-            실적 인정
-          </label>
-
-          <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-slate-950/45 px-4 py-4 text-sm text-blue-50/82">
-            <input
-              name="isFixedCost"
-              type="checkbox"
-              defaultChecked={initialTransaction?.is_fixed_cost ?? false}
-              className="h-4 w-4 rounded border-white/20"
-            />
-            고정비
-          </label>
-        </div>
-
-        <label className="block">
-          <span className={labelClassName}>메모</span>
-          <input
-            name="memo"
-            type="text"
-            className={fieldClassName}
-            defaultValue={initialTransaction?.memo ?? ""}
-            placeholder="선택 입력"
-          />
-          <FieldError errors={state.fieldErrors?.memo} />
-        </label>
-
-        {state.message ? (
-          <div
-            className={
-              state.status === "success"
-                ? "rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-100"
-                : "rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-100"
-            }
-          >
-            {state.message}
-          </div>
-        ) : null}
-
-        <div className="flex items-center justify-between gap-4 border-t border-white/10 pt-2">
-          <p className="text-xs leading-6 text-blue-100/55">
-            카드사 앱이나 영수증에서 확인한 할인·적립 혜택을 함께 적어두면 월말 정산이 쉬워져요.
-          </p>
-          <SubmitButton />
-        </div>
-      </form>
-    </section>
-  );
+export type TransactionFormProps = SharedFormProps & (
+  | { initialIncome: IncomeEntryRecord; initialTransaction?: never }
+  | { initialIncome?: never; initialTransaction?: TransactionRecord | null }
+);
+export function TransactionForm(props: TransactionFormProps) {
+  return props.initialIncome
+    ? <IncomeForm income={props.initialIncome} month={props.month} compact={props.compact} action={props.action} onSuccess={props.onSuccess} onLockChange={props.onLockChange} />
+    : <ExpenseTransactionForm {...props} />;
 }
-
-function FieldError({ errors }: { errors?: string[] }) {
-  if (!errors?.length) {
-    return null;
-  }
-
-  return <p className="mt-2 text-xs text-rose-200">{errors[0]}</p>;
+function ExpenseTransactionForm({ userCards = [], defaultUserCardId, compact = false, initialTransaction, month, onSuccess, onLockChange, action }: SharedFormProps & { initialTransaction?: TransactionRecord | null }) {
+  const [original] = useState(initialTransaction);
+  const selectedMonth = month ?? original?.workspace?.projection.month ?? undefined;
+  const [state, formAction, pending, onSubmit, blocked] = useLedgerActionState(action ?? createTransaction, initialTransactionFormState, { version: original?.version, month: selectedMonth, create: !original });
+  const [occurredAt] = useState(() => {
+    // Empty is an unchanged-display sentinel, not a replacement for the raw date.
+    // Validate the calendar too: Date alone silently normalizes February 30.
+    if (original && !parseSeoulInstant(original.occurred_at)) return "";
+    return new Date(new Date(original?.occurred_at ?? Date.now()).getTime() + 9 * 3600000).toISOString().slice(0, 16);
+  });
+  const complete = state.status === "success" || state.status === "saved_needs_review";
+  useEffect(() => { if (state.status === "success") onSuccess?.(); }, [state.status, onSuccess]);
+  useEffect(() => { onLockChange?.(pending || state.status === "outcome_unknown"); }, [pending, state.status, onLockChange]);
+  const cards = original?.user_cards && !userCards.some(card => card.id === original.user_card_id) ? [...userCards, original.user_cards] : userCards;
+  return <section className={compact ? "ledger-entry" : "ledger-entry ledger-section"}>
+    {!compact ? <h2>지출 상세 수정</h2> : null}
+    {original ? <TransactionCalculationSummary transaction={original} /> : null}
+    <p className="workspace-note">원본 version {String(original?.version ?? "신규")} · 계산 근거 owner revision {String(original?.workspace?.ownerRevision ?? "확인 필요")}. 다른 항목을 수정해도 기존 보정 원문은 유지됩니다.</p>
+    <form action={formAction} onSubmit={onSubmit} noValidate={state.status === "outcome_unknown"}>
+      <LedgerRequestFields version={original?.version} month={selectedMonth} create={!original} state={state} />
+      <input type="hidden" name="originalAmount" value={String(original?.amount ?? "")} />
+      <input type="hidden" name="originalLocalOccurredAt" value={occurredAt} />
+      <input type="hidden" name="timezoneOffset" value="-540" />
+      <fieldset disabled={blocked || pending || complete || state.status === "outcome_unknown"}>
+        <div className="ledger-fields">
+          <label>금액<input name="amount" inputMode="decimal" defaultValue={original?.amount ?? ""} required /></label>
+          <label>사용처<input name="merchantName" defaultValue={original?.merchant_name ?? ""} required maxLength={200} /></label>
+          <label>사용 일시 · 한국 시간<input name="occurredAt" type="datetime-local" defaultValue={occurredAt} required={Boolean(occurredAt)} /></label>
+          <label>결제수단<select name="paymentMethod" defaultValue={original?.payment_method ?? "credit_card"}>{paymentMethodOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
+          <label>결제 카드<select name="userCardId" defaultValue={original?.user_card_id ?? defaultUserCardId ?? ""}><option value="">카드 미선택</option>{cards.map(card => <option key={card.id} value={card.id}>{card.alias || card.card.name}{card.archived_at ? " (보관)" : ""}</option>)}</select></label>
+          <label>카테고리<select name="ledgerCategory" defaultValue={original?.ledger_category ?? ""}><option value="">선택 안 함</option>{original?.ledger_category && !ledgerCategories.some(category => category === original.ledger_category) ? <option value={original.ledger_category}>{original.ledger_category}</option> : null}{ledgerCategories.map(category => <option key={category} value={category}>{category}</option>)}</select></label>
+        </div>
+        {original && !occurredAt ? <p className="ledger-preserved">날짜 확인 필요 · 원문 {original.occurred_at}. 날짜를 선택하지 않으면 원문을 유지합니다.</p> : null}
+        <PaymentDetailsFields transaction={original} />
+        <label className="ledger-check"><input name="isFixedCost" type="checkbox" defaultChecked={original?.is_fixed_cost ?? false} />고정비</label>
+        <label>메모<input name="memo" defaultValue={original?.memo ?? ""} maxLength={2000} /></label>
+        {original?.origin === "legacy" ? <p className="workspace-note">기존 소수 금액 원문은 수정하지 않으면 그대로 보존합니다. 새 금액은 정수 원 단위만 지원합니다.</p> : null}
+      </fieldset>
+      <LedgerActionFeedback state={state} />
+      {state.feedback ? <p className="workspace-note">혜택 {state.feedback.benefit} · 실적 반영 {state.feedback.performance}<br />{state.feedback.notice}</p> : null}
+      <button type="submit" className="ledger-submit" disabled={blocked || pending || complete}>{pending ? "저장 중…" : state.status === "outcome_unknown" ? "같은 요청 재시도" : complete ? "저장됨 · 최신 자료로 다시 열기" : "지출 저장"}</button>
+    </form>
+  </section>;
 }

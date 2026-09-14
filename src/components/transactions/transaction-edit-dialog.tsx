@@ -1,73 +1,46 @@
 "use client";
-
 import { useState } from "react";
-import { createPortal } from "react-dom";
-
+import { LedgerMutationBoundary } from "./ledger-request-fields";
+import { LocalDate } from "./local-date";
 import { updateTransaction } from "@/app/transactions/new/actions";
-import { TransactionForm } from "@/components/transactions/transaction-form";
+import { TransactionDeleteForm } from "./transaction-delete-form";
+import { TransactionForm } from "./transaction-form";
+import { TransactionCalculationSummary } from "./transaction-calculation-summary";
+import { TransactionAnnotationForm } from "./transaction-annotation-form";
+import { TransactionCancelDialog } from "./transaction-cancel-dialog";
+import { LedgerDialog } from "./ledger-dialog";
 import type { UserCardRecord } from "@/features/cards/types";
 import type { TransactionRecord } from "@/features/transactions/types";
+import type { TransactionEditorContext } from "@/lib/card-workspace/input-options";
+import { currentSeoulMonth } from "@/lib/card-workspace/view-model";
+import { IncomeEditDialog } from "@/components/ledger/income-edit-dialog";
+import type { IncomeEntryRecord } from "@/features/ledger/types";
 
-export function TransactionEditDialog({
-  transaction,
-  userCards,
-}: {
-  transaction: TransactionRecord;
-  userCards: UserCardRecord[];
+type SharedDialogProps = { month?: string; trigger?: React.ReactNode; triggerClassName?: string; disabled?: boolean; readOnly?: boolean };
+export type TransactionEditDialogProps = SharedDialogProps & (
+  | { income: IncomeEntryRecord; transaction?: never; userCards?: UserCardRecord[]; context?: never }
+  | { income?: never; transaction: TransactionRecord; userCards: UserCardRecord[]; context?: TransactionEditorContext }
+);
+export function TransactionEditDialog(props: TransactionEditDialogProps) {
+  return props.income ? <IncomeEditDialog {...props} income={props.income} /> : <ExpenseEditDialog {...props} />;
+}
+function ExpenseEditDialog({ transaction, userCards, context, month, trigger, triggerClassName = "block", disabled = false, readOnly = false }: SharedDialogProps & {
+  transaction: TransactionRecord; userCards: UserCardRecord[]; context?: TransactionEditorContext;
 }) {
   const [open, setOpen] = useState(false);
-  const canUsePortal = typeof document !== "undefined";
-
-  return (
-    <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="inline-flex h-8 items-center justify-center rounded-full border border-white/12 bg-white/6 px-2.5 text-[11px] font-medium text-blue-50 transition hover:bg-white/10"
-      >
-        수정
-      </button>
-
-      {open && canUsePortal
-        ? createPortal(
-            <div
-              className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/75 px-4 py-8 backdrop-blur-sm"
-              onClick={() => setOpen(false)}
-            >
-              <div
-                className="w-full max-w-4xl rounded-[28px] border border-white/10 bg-[#071120] p-6 shadow-2xl shadow-black/40"
-                onClick={(event) => event.stopPropagation()}
-              >
-                <div className="mb-5 flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-lg font-semibold text-white">지출 내역 수정</p>
-                    <p className="mt-2 text-sm text-blue-100/72">
-                      금액, 카드, 혜택 정보를 실제 결제 내역에 맞게 고쳐주세요.
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setOpen(false)}
-                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/12 bg-white/6 text-lg text-white transition hover:bg-white/10"
-                    aria-label="닫기"
-                  >
-                    ×
-                  </button>
-                </div>
-
-                <TransactionForm
-                  userCards={userCards}
-                  defaultUserCardId={transaction.user_card_id}
-                  compact
-                  initialTransaction={transaction}
-                  action={updateTransaction.bind(null, transaction.id)}
-                  onSuccess={() => setOpen(false)}
-                />
-              </div>
-            </div>,
-            document.body,
-          )
-        : null}
-    </>
-  );
+  return <><button type="button" disabled={disabled} onClick={() => setOpen(true)} className={triggerClassName} aria-label={trigger ? undefined : "거래 상세·수정"}>{trigger ?? "수정"}</button>
+    {open ? <Editor key={`${transaction.id}:${open}`} transaction={transaction} userCards={userCards} context={context} month={month} readOnly={readOnly} onClose={() => setOpen(false)} /> : null}</>;
+}
+function Editor({ transaction: current, userCards, context: currentContext, month, readOnly, onClose }: { transaction: TransactionRecord; userCards: UserCardRecord[]; context?: TransactionEditorContext; month?: string; readOnly: boolean; onClose: () => void }) {
+  const [transaction] = useState(current);
+  const [context] = useState(currentContext);
+  const [locked, setLocked] = useState(false);
+  const selectedMonth = month ?? transaction.workspace?.projection.month ?? currentSeoulMonth();
+  return <LedgerDialog title="거래 상세·수정" locked={locked} onClose={onClose}><LedgerMutationBoundary onLockChange={setLocked}>
+    {readOnly ? <><p className="workspace-note">읽기 전용 · 원본과 계산 근거를 확인할 수 있습니다.</p><h3>{transaction.merchant_name}</h3><TransactionCalculationSummary transaction={transaction} /></> : <TransactionForm userCards={userCards} defaultUserCardId={transaction.user_card_id} compact initialTransaction={transaction} month={selectedMonth} action={updateTransaction.bind(null, transaction.id)} />}
+    {context ? <TransactionAnnotationForm transactionId={transaction.id} context={context} month={selectedMonth} readOnly={readOnly} /> : <p className="ledger-preserved">보정 대상과 환불 이력 확인 필요 · 내 카드 사용내역에서 최신 거래 상세를 열어 주세요.</p>}
+    {!readOnly && context ? <TransactionCancelDialog transaction={transaction} refundableAmount={context.refundableAmount} month={selectedMonth} disabled={locked} /> : null}
+    {!readOnly ? <TransactionDeleteForm transactionId={transaction.id} version={transaction.version} month={selectedMonth} /> : null}
+    {context?.refunds.map(refund => <p className="workspace-note" key={refund.id}>연결 환불 <LocalDate value={refund.occurred_at} /> · 원문 {String(refund.amount)}원</p>)}
+  </LedgerMutationBoundary></LedgerDialog>;
 }

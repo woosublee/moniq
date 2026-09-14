@@ -1,22 +1,6 @@
-"use client";
-
-import { useEffect, useRef } from "react";
-
-export function TimezoneOffsetInput({ value }: { value?: string }) {
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (inputRef.current) {
-      inputRef.current.value = String(new Date().getTimezoneOffset());
-    }
-  }, []);
-
-  return (
-    <input
-      ref={inputRef}
-      type="hidden"
-      name="timezoneOffset"
-      defaultValue={value ?? "0"}
-    />
-  );
+/** Compatibility form field only. Ledger boundaries are always Asia/Seoul;
+ * hydration must never replace server-selected dates with the browser's month. */
+export function TimezoneOffsetInput(props: { value?: string; syncCurrentMonth?: boolean }) {
+  void props;
+  return <input type="hidden" name="timezoneOffset" value="-540" />;
 }

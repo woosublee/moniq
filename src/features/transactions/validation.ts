@@ -14,6 +14,25 @@ const paymentMethodSchema = z.enum([
 
 const parseBoolean = (value: FormDataEntryValue | null) => value === "on";
 
+export const quickTransactionInputSchema = z.object({
+  occurredAt: z
+    .string()
+    .min(1, "거래 일시를 입력해 주세요."),
+  timezoneOffset: z
+    .number("타임존 정보를 숫자로 입력해 주세요.")
+    .finite("타임존 정보가 올바르지 않습니다."),
+  merchantName: z
+    .string()
+    .trim()
+    .min(1, "사용처를 입력해 주세요.")
+    .max(80, "사용처는 80자 이하로 입력해 주세요."),
+  amount: z
+    .number("금액을 숫자로 입력해 주세요.")
+    .finite("금액 형식이 올바르지 않습니다.")
+    .positive("금액은 0보다 커야 합니다."),
+  userCardId: z.string().uuid("카드를 선택해 주세요."),
+});
+
 export const transactionInputSchema = z
   .object({
     occurredAt: z
@@ -63,7 +82,45 @@ export const transactionInputSchema = z
         path: ["userCardId"],
       });
     }
+
+    if (value.benefitAmount > value.actualAmount) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "할인/적립 금액이 결제 금액보다 클 수 없습니다.",
+        path: ["benefitAmount"],
+      });
+    }
   });
+
+export const parseQuickTransactionInput = (raw: {
+  occurredAt: string;
+  timezoneOffset: number;
+  merchantName: string;
+  amount: number;
+  userCardId: string;
+}) => {
+  const parsed = quickTransactionInputSchema.safeParse(raw);
+
+  if (!parsed.success) {
+    return parsed;
+  }
+
+  const { amount } = parsed.data;
+  const input = {
+    ...parsed.data,
+    actualAmount: amount,
+    benefitLabel: "",
+    benefitAmount: 0,
+    finalAmount: amount,
+    paymentMethod: "credit_card",
+    isPerformanceEligible: true,
+    ledgerCategory: "",
+    isFixedCost: false,
+    memo: "",
+  } satisfies TransactionInput;
+
+  return transactionInputSchema.safeParse(input);
+};
 
 export const parseTransactionInput = (raw: {
   occurredAt: FormDataEntryValue | null;
@@ -85,7 +142,12 @@ export const parseTransactionInput = (raw: {
   const amount = raw.amount ? Number(raw.amount) : Number.NaN;
   const actualAmount = raw.actualAmount ? Number(raw.actualAmount) : amount;
   const benefitAmount = raw.benefitAmount ? Number(raw.benefitAmount) : 0;
-  const finalAmount = raw.finalAmount ? Number(raw.finalAmount) : amount;
+  const finalAmount = raw.finalAmount
+    ? Number(raw.finalAmount)
+    : Math.max(actualAmount - benefitAmount, 0);
+
+  const paymentMethod = raw.paymentMethod as PaymentMethod;
+  const isCardPayment = paymentMethod === "credit_card" || paymentMethod === "check_card";
 
   const input = {
     occurredAt: String(raw.occurredAt ?? ""),
@@ -96,8 +158,8 @@ export const parseTransactionInput = (raw: {
     benefitLabel: String(raw.benefitLabel ?? "").trim(),
     benefitAmount,
     finalAmount,
-    paymentMethod: raw.paymentMethod as PaymentMethod,
-    userCardId: String(raw.userCardId ?? "").trim() || null,
+    paymentMethod,
+    userCardId: isCardPayment ? String(raw.userCardId ?? "").trim() || null : null,
     isPerformanceEligible: parseBoolean(raw.isPerformanceEligible),
     ledgerCategory: String(raw.ledgerCategory ?? "").trim(),
     isFixedCost: parseBoolean(raw.isFixedCost),

@@ -1,111 +1,44 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import type { CardRecord, UserCardFormState } from "@/features/cards/types";
+import { assertCanMutate, getOwnerContext } from "@/lib/auth/owner";
+import { applyLedgerCommand } from "@/lib/card-workspace/mutations";
+import { currentSeoulMonth } from "@/lib/card-workspace/view-model";
+import { searchCards } from "@/lib/supabase/queries";
+import { formText as text, integerInput } from "@/lib/card-workspace/form-data";
 
-import { initialUserCardFormState } from "@/features/cards/constants";
-import { toUserCardInsert } from "@/features/cards/mappers";
-import type { UserCardFormState } from "@/features/cards/types";
-import { registerUserCardSchema } from "@/features/cards/validation";
-import { serverEnv } from "@/lib/server-env";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-
-export async function registerUserCard(
-  _prevState: UserCardFormState,
-  formData: FormData,
-): Promise<UserCardFormState> {
-  const parsed = registerUserCardSchema.safeParse({
-    cardId: String(formData.get("cardId") ?? ""),
-    alias: String(formData.get("alias") ?? "").trim(),
-  });
-
-  if (!parsed.success) {
-    return {
-      status: "error",
-      message: parsed.error.issues[0]?.message ?? "입력값을 확인해 주세요.",
-    };
-  }
-
+export async function searchCardCatalog(query: string): Promise<CardRecord[]> {
+  const owner = await getOwnerContext();
+  return searchCards(query, owner.ownerId);
+}
+export async function registerUserCard(_prevState: UserCardFormState, formData: FormData): Promise<UserCardFormState> {
+  const owner = await getOwnerContext(); assertCanMutate(owner);
+  const result = await applyLedgerCommand(String(formData.get("requestId") ?? ""), {
+    kind: "card.create", id: String(formData.get("entryId") ?? ""), source: {
+      card_id: String(formData.get("cardId") ?? ""), alias: String(formData.get("alias") ?? "").trim() || null,
+    },
+  }, String(formData.get("month") || currentSeoulMonth()));
+  return { status: result.status === "saved" ? "success" : result.status === "rejected" ? "error" : result.status,
+    message: result.message, requestId: result.requestId, resultIds: result.receipt?.resultIds };
+}
+async function mutateCard(userCardId: string, data: FormData, kind: "card.default" | "card.archive") {
+  const owner = await getOwnerContext(); assertCanMutate(owner);
+  const result = await applyLedgerCommand(String(data.get("requestId") ?? ""), { kind, id: userCardId, expected_version: String(data.get("version") ?? "") }, String(data.get("month") || currentSeoulMonth()));
+  return { status: result.status === "saved" ? "success" as const : result.status === "rejected" ? "error" as const : result.status, message: result.message, requestId: result.requestId, resultIds: result.receipt?.resultIds };
+}
+export async function saveCardMonthInput(id: string | null, _previous: UserCardFormState, data: FormData): Promise<UserCardFormState> {
+  const owner = await getOwnerContext(); assertCanMutate(owner);
   try {
-    const supabase = createSupabaseServerClient();
-    const { count, error: countError } = await supabase
-      .from("user_cards")
-      .select("id", { count: "exact", head: true })
-      .eq("owner_id", serverEnv.moniqOwnerId);
-
-    if (countError) {
-      return {
-        status: "error",
-        message: countError.message,
-      };
-    }
-
-    const payload = toUserCardInsert({
-      ownerId: serverEnv.moniqOwnerId,
-      cardId: parsed.data.cardId,
-      alias: parsed.data.alias,
-      isDefault: (count ?? 0) === 0,
-    });
-
-    const { error } = await supabase.from("user_cards").insert(payload);
-
-    if (error) {
-      return {
-        status: "error",
-        message:
-          error.code === "23505" &&
-          error.message.includes("user_cards_owner_id_card_id_unique")
-            ? "이미 추가된 카드입니다."
-            : "카드를 추가하지 못했습니다. 잠시 후 다시 시도해 주세요.",
-      };
-    }
-
-    revalidatePath("/cards");
-    revalidatePath("/cards/search");
-    revalidatePath("/transactions/new");
-
-    return {
-      status: "success",
-      message: "카드가 추가되었습니다.",
-    };
-  } catch (error) {
-    return {
-      ...initialUserCardFormState,
-      status: "error",
-      message:
-        error instanceof Error
-          ? error.message
-          : "카드를 추가하지 못했습니다. 잠시 후 다시 시도해 주세요.",
-    };
-  }
+    const status = text(data, "dataStatus");
+    const source = { month: text(data, "inputMonth"), scopeKind: text(data, "scopeKind") || "performance", scopeKey: text(data, "scopeKey"), scopeInstanceKey: text(data, "scopeInstanceKey"), data: status === "manual_total" || status === "remaining" ? { status, amount: integerInput(text(data, "amount"), true) } : { status } };
+    const result = await applyLedgerCommand(text(data, "requestId"), id ? { kind: "month_input.update", id, expected_version: text(data, "version"), source } : { kind: "month_input.create", id: text(data, "entryId"), source }, text(data, "month"));
+    return { status: result.status === "saved" ? "success" : result.status === "rejected" ? "error" : result.status, message: result.message, requestId: result.requestId, resultIds: result.receipt?.resultIds };
+  } catch (error) { return { status: "error", message: error instanceof Error ? error.message : "월 자료를 확인해 주세요." }; }
 }
-
-export async function setDefaultUserCard(userCardId: string) {
-  const supabase = createSupabaseServerClient();
-  const { error } = await supabase.rpc("set_default_user_card", {
-    target_owner_id: serverEnv.moniqOwnerId,
-    target_user_card_id: userCardId,
-  });
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  revalidatePath("/cards");
-  revalidatePath("/transactions/new");
+export async function saveCardTarget(id: string, _previous: UserCardFormState, data: FormData): Promise<UserCardFormState> {
+  const owner = await getOwnerContext(); assertCanMutate(owner);
+  const result = await applyLedgerCommand(text(data, "requestId"), { kind: "card.update", id, expected_version: text(data, "version"), patch: { target_scope_key: text(data, "scopeKey") || null, target_tier_key: text(data, "tierKey") || null } }, text(data, "month"));
+  return { status: result.status === "saved" ? "success" : result.status === "rejected" ? "error" : result.status, message: result.message, requestId: result.requestId, resultIds: result.receipt?.resultIds };
 }
-
-export async function deleteUserCard(userCardId: string) {
-  const supabase = createSupabaseServerClient();
-  const { error } = await supabase.rpc("delete_user_card_and_promote_default", {
-    target_owner_id: serverEnv.moniqOwnerId,
-    target_user_card_id: userCardId,
-  });
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  revalidatePath("/cards");
-  revalidatePath("/cards/search");
-  revalidatePath("/transactions/new");
-}
+export async function setDefaultUserCard(userCardId: string, formData: FormData) { return mutateCard(userCardId, formData, "card.default"); }
+export async function deleteUserCard(userCardId: string, formData: FormData) { return mutateCard(userCardId, formData, "card.archive"); }

@@ -1,13 +1,26 @@
 import "server-only";
 
-const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const moniqOwnerId = process.env.MONIQ_OWNER_ID;
+const defaultMoniqOwnerId = "00000000-0000-0000-0000-000000000001";
+const defaultDemoOwnerId = "00000000-0000-0000-0000-000000000999";
 
-if (!supabaseServiceRoleKey || !moniqOwnerId) {
-  throw new Error("SUPABASE_SERVICE_ROLE_KEY and MONIQ_OWNER_ID are required.");
-}
+const getRequiredServerEnv = (name: string) => {
+  const value = process.env[name];
+
+  if (!value) {
+    throw new Error(`${name} is required.`);
+  }
+
+  return value;
+};
 
 export const serverEnv = {
-  supabaseServiceRoleKey,
-  moniqOwnerId,
+  get supabaseServiceRoleKey() {
+    return getRequiredServerEnv("SUPABASE_SERVICE_ROLE_KEY");
+  },
+  get moniqOwnerId() {
+    return process.env.MONIQ_OWNER_ID || defaultMoniqOwnerId;
+  },
+  get moniqDemoOwnerId() {
+    return process.env.MONIQ_DEMO_OWNER_ID || defaultDemoOwnerId;
+  },
 };
