@@ -1,12 +1,15 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useLedgerSelection } from "./use-ledger-selection";
 
-import { deleteTransactions } from "@/app/transactions/new/actions";
+import { currentSeoulMonth, formatWon, getTransactionAmounts, getTransactionBenefitLabel } from "@/lib/card-workspace/view-model";
+
 import { LocalDate } from "@/components/transactions/local-date";
+import { TransactionCalculationSummary } from "@/components/transactions/transaction-calculation-summary";
 import { TransactionEditDialog } from "@/components/transactions/transaction-edit-dialog";
 import type { UserCardRecord } from "@/features/cards/types";
 import type { PaymentMethod, TransactionRecord } from "@/features/transactions/types";
+import type { TransactionEditorContext } from "@/lib/card-workspace/input-options";
 
 const paymentMethodLabel: Record<PaymentMethod, string> = {
   cash: "현금",
@@ -15,7 +18,7 @@ const paymentMethodLabel: Record<PaymentMethod, string> = {
   points: "포인트",
 };
 
-const moneyFormatter = new Intl.NumberFormat("ko-KR");
+
 
 const getPaymentDisplay = (transaction: TransactionRecord) => {
   const isCardPayment =
@@ -31,53 +34,24 @@ const getPaymentDisplay = (transaction: TransactionRecord) => {
     : paymentMethodLabel[transaction.payment_method];
 };
 
-const tableColumns =
-  "grid-cols-[32px_82px_minmax(180px,1.5fr)_minmax(150px,1fr)_100px_100px_90px_minmax(140px,1fr)_72px_110px_64px]";
 
-const rowContentColumns =
-  "grid-cols-[82px_minmax(180px,1.5fr)_minmax(150px,1fr)_100px_100px_90px_minmax(140px,1fr)_72px_110px_64px]";
 
 export function TransactionsTable({
   transactions,
   userCards,
+  canMutate = true,
+  month = currentSeoulMonth(),
+  editorContexts,
 }: {
   transactions: TransactionRecord[];
   userCards: UserCardRecord[];
+  canMutate?: boolean;
+  month?: string;
+  editorContexts?: Record<string, TransactionEditorContext>;
 }) {
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [message, setMessage] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
-  const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
-  const allSelected =
-    transactions.length > 0 && selectedIds.length === transactions.length;
-
-  const toggleTransaction = (transactionId: string) => {
-    setMessage(null);
-    setSelectedIds((current) =>
-      current.includes(transactionId)
-        ? current.filter((id) => id !== transactionId)
-        : [...current, transactionId],
-    );
-  };
-
-  const toggleAll = () => {
-    setMessage(null);
-    setSelectedIds(allSelected ? [] : transactions.map((transaction) => transaction.id));
-  };
-
-  const deleteSelected = () => {
-    startTransition(async () => {
-      const result = await deleteTransactions(selectedIds);
-
-      if (result.status === "success") {
-        setSelectedIds([]);
-        setMessage(null);
-        return;
-      }
-
-      setMessage(result.message);
-    });
-  };
+  const { selectedIds, selectedIdSet, message, uncertainDelete, isPending, allSelected, toggleTransaction, toggleAll, clearSelection, deleteSelected } = useLedgerSelection(
+    transactions.map(row => ({ key: row.id, ref: { id: row.id, version: String(row.version ?? "") } })), month,
+  );
 
   if (transactions.length === 0) {
     return (
@@ -92,21 +66,24 @@ export function TransactionsTable({
 
   return (
     <>
+      {message ? <p role="status" className="text-sm text-amber-800">{message}</p> : null}
       <div className="grid gap-3 md:hidden">
         <div className="min-h-9">
-          {selectedIds.length > 0 ? (
+          {selectedIds.length > 0 && canMutate ? (
             <BulkToolbar
               count={selectedIds.length}
               pending={isPending}
+              retry={uncertainDelete}
               message={message}
               onDelete={deleteSelected}
-              onClear={() => setSelectedIds([])}
+              onClear={clearSelection}
             />
+          ) : selectedIds.length > 0 ? (
+            <ReadOnlyToolbar onClear={clearSelection} />
           ) : null}
         </div>
         {transactions.map((transaction) => {
           const paymentDisplay = getPaymentDisplay(transaction);
-          const benefitAmount = Number(transaction.benefit_amount);
           const selected = selectedIdSet.has(transaction.id);
 
           return (
@@ -130,6 +107,10 @@ export function TransactionsTable({
                   <TransactionEditDialog
                     transaction={transaction}
                     userCards={userCards}
+                    disabled={uncertainDelete || isPending}
+                    readOnly={!canMutate}
+                    context={editorContexts?.[transaction.id]}
+                    month={month}
                     trigger={
                       <span className="block text-left">
                         <span className="flex items-start justify-between gap-4">
@@ -137,12 +118,14 @@ export function TransactionsTable({
                             <span className="block truncate text-lg font-semibold text-slate-950">
                               {transaction.merchant_name}
                             </span>
-                            <span className="mt-1 block text-sm text-slate-500">
-                              <LocalDate value={transaction.occurred_at} /> · {paymentMethodLabel[transaction.payment_method]}
+                            <span className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-500">
+                              <span>
+                                <LocalDate value={transaction.occurred_at} /> · {paymentMethodLabel[transaction.payment_method]}
+                              </span>
                             </span>
                           </span>
                           <span className="shrink-0 text-right text-lg font-semibold text-slate-950">
-                            {moneyFormatter.format(Number(transaction.final_amount))}원
+                            {formatWon(getTransactionAmounts(transaction).finalAmount)}
                           </span>
                         </span>
                       </span>
@@ -159,30 +142,15 @@ export function TransactionsTable({
                 <div className="flex justify-between gap-3">
                   <span className="text-slate-500">결제금액</span>
                   <span className="text-slate-700">
-                    {moneyFormatter.format(Number(transaction.actual_amount))}원
+                    {formatWon(getTransactionAmounts(transaction).actualAmount)}
                   </span>
                 </div>
-                <div className="flex justify-between gap-3">
-                  <span className="text-slate-500">혜택</span>
-                  <span className="text-emerald-700">
-                    {benefitAmount > 0
-                      ? `${moneyFormatter.format(benefitAmount)}원`
-                      : "-"}
-                  </span>
-                </div>
-                {transaction.benefit_label ? (
-                  <div className="flex justify-between gap-3">
-                    <span className="text-slate-500">혜택 상세</span>
-                    <span className="truncate text-right text-slate-700">
-                      {transaction.benefit_label}
-                    </span>
-                  </div>
-                ) : null}
+                <TransactionCalculationSummary transaction={transaction} />
               </div>
 
               <div className="mt-4 flex flex-wrap gap-2 text-xs font-medium">
                 <span className="rounded-full border border-slate-200 bg-white/70 px-3 py-1 text-slate-600">
-                  {transaction.is_performance_eligible ? "실적 인정" : "실적 제외"}
+                  {getTransactionAmounts(transaction).eligibleSpendAmount === null ? "실적 확인 필요" : getTransactionAmounts(transaction).eligibleSpendAmount === 0 ? "실적 미반영" : "실적 인정"}
                 </span>
                 {transaction.ledger_category ? (
                   <span className="rounded-full border border-slate-200 bg-white/70 px-3 py-1 text-slate-600">
@@ -202,113 +170,164 @@ export function TransactionsTable({
 
       <div className="hidden overflow-x-auto md:block">
         <div className="min-h-9">
-          {selectedIds.length > 0 ? (
+          {selectedIds.length > 0 && canMutate ? (
             <BulkToolbar
               count={selectedIds.length}
               pending={isPending}
+              retry={uncertainDelete}
               message={message}
               onDelete={deleteSelected}
-              onClear={() => setSelectedIds([])}
+              onClear={clearSelection}
             />
+          ) : selectedIds.length > 0 ? (
+            <ReadOnlyToolbar onClear={clearSelection} />
           ) : null}
         </div>
-        <div className="min-w-[1180px] w-full">
-          <div className={`grid ${tableColumns} gap-2 border-b border-slate-200 bg-slate-50/70 px-3 py-2 text-center text-[11px] font-medium uppercase tracking-[0.06em] text-slate-500`}>
-            <span className="flex justify-center">
-              <input
-                type="checkbox"
-                checked={allSelected}
-                onChange={toggleAll}
-                className="h-4 w-4 rounded border-slate-300 accent-slate-950"
-                aria-label="전체 선택"
-              />
-            </span>
-            <span>날짜</span>
-            <span>사용처</span>
-            <span>결제수단</span>
-            <span>결제금액</span>
-            <span>최종지출</span>
-            <span>혜택</span>
-            <span>혜택 상세</span>
-            <span>실적반영</span>
-            <span>카테고리</span>
-            <span>고정비</span>
-          </div>
-
-          {transactions.map((transaction) => {
-            const selected = selectedIdSet.has(transaction.id);
-
-            return (
-              <div
-                key={transaction.id}
-                className={`grid ${tableColumns} gap-2 border-b border-slate-200/60 px-3 py-2 text-sm text-slate-600 transition-colors hover:bg-slate-100 ${
-                  selected ? "bg-emerald-50 hover:bg-emerald-50" : ""
-                }`}
-              >
-                <span className="flex justify-center">
-                  <input
-                    type="checkbox"
-                    checked={selected}
-                    onChange={() => toggleTransaction(transaction.id)}
-                    className="h-4 w-4 rounded border-slate-300 accent-slate-950"
-                    aria-label={`${transaction.merchant_name} 선택`}
-                  />
-                </span>
-                <TransactionEditDialog
-                  transaction={transaction}
-                  userCards={userCards}
-                  triggerClassName="col-span-10 block text-left"
-                  trigger={
-                    <span className={`grid ${rowContentColumns} gap-2`}>
-                      <span className="text-center text-slate-500">
-                        <LocalDate value={transaction.occurred_at} />
-                      </span>
-                      <span className="min-w-0 text-left">
-                        <span className="block truncate font-medium text-slate-950">{transaction.merchant_name}</span>
-                      </span>
-                      <span className="min-w-0 text-left">
-                        <span className="block truncate text-slate-600">
-                          {getPaymentDisplay(transaction)}
-                        </span>
-                      </span>
-                      <span className="text-right font-medium tabular-nums text-slate-700">
-                        {moneyFormatter.format(Number(transaction.actual_amount))}원
-                      </span>
-                      <span className="text-right font-semibold tabular-nums text-slate-950">
-                        {moneyFormatter.format(Number(transaction.final_amount))}원
-                      </span>
-                      <span className="text-center tabular-nums text-emerald-700">
-                        {Number(transaction.benefit_amount) > 0
-                          ? `${moneyFormatter.format(Number(transaction.benefit_amount))}원`
-                          : "-"}
-                      </span>
-                      <span className="min-w-0 text-center">
-                        <span className="block truncate text-slate-600">{transaction.benefit_label || ""}</span>
-                      </span>
-                      <span className="text-center">{transaction.is_performance_eligible ? "인정" : "제외"}</span>
-                      <span className="truncate text-center">{transaction.ledger_category || "-"}</span>
-                      <span className="text-center">{transaction.is_fixed_cost ? "고정" : "-"}</span>
-                    </span>
-                  }
+        <table className="min-w-[1180px] w-full border-collapse text-sm">
+          <thead className="border-b border-slate-200 bg-slate-50/70 text-[11px] font-medium uppercase tracking-[0.06em] text-slate-500">
+            <tr>
+              <th className="w-10 px-3 py-2 text-center">
+                <input
+                  type="checkbox"
+                  checked={allSelected}
+                  onChange={toggleAll}
+                  className="h-4 w-4 rounded border-slate-300 accent-slate-950"
+                  aria-label="전체 선택"
                 />
-              </div>
-            );
-          })}
-        </div>
+              </th>
+              <th className="w-24 px-3 py-2 text-left">날짜</th>
+              <th className="min-w-48 px-3 py-2 text-left">사용처</th>
+              <th className="min-w-44 px-3 py-2 text-left">결제수단</th>
+              <th className="w-28 px-3 py-2 text-right">결제금액</th>
+              <th className="w-28 px-3 py-2 text-right">최종지출</th>
+              <th className="w-28 px-3 py-2 text-right">혜택</th>
+              <th className="w-28 px-3 py-2 text-right">실적반영</th>
+              <th className="w-32 px-3 py-2 text-left">카테고리</th>
+              <th className="w-20 px-3 py-2 text-center">고정비</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-200/60">
+            {transactions.map((transaction) => {
+              const selected = selectedIdSet.has(transaction.id);
+              const { benefitAmount, eligibleSpendAmount } = getTransactionAmounts(transaction);
+
+              return (
+                <tr
+                  key={transaction.id}
+                  className={selected ? "bg-emerald-50" : "transition-colors hover:bg-slate-50"}
+                >
+                  <td className="px-3 py-3 text-center align-middle">
+                    <input
+                      type="checkbox"
+                      checked={selected}
+                      onChange={() => toggleTransaction(transaction.id)}
+                      className="h-4 w-4 rounded border-slate-300 accent-slate-950"
+                      aria-label={`${transaction.merchant_name} 선택`}
+                    />
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-3 align-middle text-slate-500">
+                    <TransactionEditDialog
+                      transaction={transaction}
+                      userCards={userCards}
+                      disabled={uncertainDelete || isPending}
+                    readOnly={!canMutate}
+                    context={editorContexts?.[transaction.id]}
+                    month={month}
+                      triggerClassName="block w-full text-left"
+                      trigger={<LocalDate value={transaction.occurred_at} />}
+                    />
+                  </td>
+                  <td className="px-3 py-3 align-middle">
+                    <TransactionEditDialog
+                      transaction={transaction}
+                      userCards={userCards}
+                      disabled={uncertainDelete || isPending}
+                    readOnly={!canMutate}
+                    context={editorContexts?.[transaction.id]}
+                    month={month}
+                      triggerClassName="block w-full text-left"
+                      trigger={
+                        <span className="block min-w-0">
+                          <span className="block truncate font-medium text-slate-950">
+                            {transaction.merchant_name}
+                          </span>
+                          {transaction.merchant_normalized_name ? (
+                            <span className="mt-1 block truncate text-xs text-slate-400">
+                              {transaction.merchant_normalized_name}
+                            </span>
+                          ) : null}
+                        </span>
+                      }
+                    />
+                  </td>
+                  <td className="px-3 py-3 align-middle text-slate-600">
+                    <TransactionEditDialog
+                      transaction={transaction}
+                      userCards={userCards}
+                      disabled={uncertainDelete || isPending}
+                    readOnly={!canMutate}
+                    context={editorContexts?.[transaction.id]}
+                    month={month}
+                      triggerClassName="block w-full text-left"
+                      trigger={<span className="block truncate">{getPaymentDisplay(transaction)}</span>}
+                    />
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-3 text-right align-middle tabular-nums text-slate-700">
+                    {formatWon(getTransactionAmounts(transaction).actualAmount)}
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-3 text-right align-middle font-semibold tabular-nums text-slate-950">
+                    {formatWon(getTransactionAmounts(transaction).finalAmount)}
+                  </td>
+                  <td className="min-w-48 max-w-xs break-words px-3 py-3 text-right align-middle tabular-nums">
+                    <span className={benefitAmount !== null && benefitAmount > 0 ? "font-medium text-emerald-700" : "text-slate-500"}>
+                      {getTransactionBenefitLabel(transaction)}
+                    </span>
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-3 text-right align-middle tabular-nums text-slate-700">
+                    {formatWon(eligibleSpendAmount)}
+                  </td>
+                  <td className="px-3 py-3 align-middle text-slate-600">
+                    <span className="block truncate">{transaction.ledger_category || "-"}</span>
+                  </td>
+                  <td className="px-3 py-3 text-center align-middle text-slate-600">
+                    {transaction.is_fixed_cost ? "고정" : "-"}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
     </>
+  );
+}
+
+function ReadOnlyToolbar({ onClear }: { onClear: () => void }) {
+  return (
+    <div className="flex h-8 flex-wrap items-center gap-2 border-b border-slate-200 pb-2 text-sm text-amber-800">
+      <span>데모 모드에서는 샘플 데이터를 변경할 수 없습니다.</span>
+      <button
+        type="button"
+        onClick={onClear}
+        className="rounded-md px-2 py-1 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+      >
+        선택 해제
+      </button>
+    </div>
   );
 }
 
 function BulkToolbar({
   count,
   pending,
+  retry,
   message,
   onDelete,
   onClear,
 }: {
   count: number;
   pending: boolean;
+  retry: boolean;
   message: string | null;
   onDelete: () => void;
   onClear: () => void;
@@ -322,12 +341,12 @@ function BulkToolbar({
         disabled={pending}
         className="rounded-md px-2 py-1 font-medium text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:text-rose-300"
       >
-        {pending ? "삭제 중" : "선택 삭제"}
+        {pending ? "제외 중" : retry ? "같은 제외 요청 확인 / 재시도" : "오입력 제외"}
       </button>
       <button
         type="button"
         onClick={onClear}
-        disabled={pending}
+        disabled={pending || retry}
         className="rounded-md px-2 py-1 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 disabled:cursor-not-allowed disabled:text-slate-300"
       >
         선택 해제

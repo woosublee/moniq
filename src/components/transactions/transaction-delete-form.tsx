@@ -1,31 +1,11 @@
 "use client";
-
-import { useActionState } from "react";
-
 import { deleteTransaction } from "@/app/transactions/new/actions";
+import { LedgerActionForm } from "./ledger-request-fields";
+import type { RevisionValue } from "@/features/card-benefits/types";
+import type { TransactionFormState } from "@/features/transactions/types";
 import { initialTransactionFormState } from "@/features/transactions/constants";
-
-export function TransactionDeleteForm({ transactionId }: { transactionId: string }) {
-  const [state, formAction] = useActionState(
-    deleteTransaction.bind(null, transactionId),
-    initialTransactionFormState,
-  );
-
-  return (
-    <form action={formAction} className="flex flex-col items-end gap-1">
-      <button
-        type="submit"
-        className="inline-flex h-7 w-7 items-center justify-center rounded-md text-sm text-slate-400 transition hover:bg-rose-50 hover:text-rose-600"
-        aria-label="삭제"
-        title="삭제"
-      >
-        ×
-      </button>
-      {state.status === "error" ? (
-        <span className="max-w-28 text-right text-[10px] leading-4 text-rose-600">
-          {state.message}
-        </span>
-      ) : null}
-    </form>
-  );
+export function TransactionDeleteForm({ transactionId, version, month, onState }: { transactionId: string; version?: RevisionValue; month?: string; onState?: (state: TransactionFormState, pending: boolean) => void }) {
+  return <details className="ledger-auxiliary"><summary>잘못 입력한 거래 제외</summary><p>실제 환불은 위의 취소·부분취소 기록을 사용하세요. 오입력 제외는 계산에서만 빼며 원본 연결은 보존합니다.</p>
+    <LedgerActionForm action={deleteTransaction.bind(null, transactionId)} initial={initialTransactionFormState} version={version} month={month} submitLabel="오입력 제외" onState={onState}><label className="ledger-check"><input type="checkbox" required />실제 취소가 아니라 잘못 입력한 거래입니다.</label></LedgerActionForm>
+  </details>;
 }

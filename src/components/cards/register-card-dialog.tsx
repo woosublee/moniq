@@ -6,8 +6,9 @@ import { createPortal } from "react-dom";
 import { RegisterCardForm } from "@/components/cards/register-card-form";
 import type { CardRecord } from "@/features/cards/types";
 
-export function RegisterCardDialog({ card }: { card: CardRecord }) {
+export function RegisterCardDialog({ card, month }: { card: CardRecord; month?: string }) {
   const [open, setOpen] = useState(false);
+  const [locked, setLocked] = useState(false);
   const canUsePortal = typeof document !== "undefined";
   const titleId = `register-card-title-${card.id}`;
 
@@ -17,7 +18,7 @@ export function RegisterCardDialog({ card }: { card: CardRecord }) {
     }
 
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
+      if (event.key === "Escape" && !locked) {
         setOpen(false);
       }
     };
@@ -25,7 +26,7 @@ export function RegisterCardDialog({ card }: { card: CardRecord }) {
     window.addEventListener("keydown", closeOnEscape);
 
     return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [open]);
+  }, [open, locked]);
 
   return (
     <>
@@ -41,7 +42,7 @@ export function RegisterCardDialog({ card }: { card: CardRecord }) {
         ? createPortal(
             <div
               className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/35 px-4 py-8 backdrop-blur-sm"
-              onClick={() => setOpen(false)}
+              onClick={() => { if (!locked) setOpen(false); }}
             >
               <div
                 role="dialog"
@@ -59,9 +60,10 @@ export function RegisterCardDialog({ card }: { card: CardRecord }) {
                   </div>
                   <button
                     type="button"
-                    onClick={() => setOpen(false)}
+                    onClick={() => { if (!locked) setOpen(false); }}
                     className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
                     aria-label="닫기"
+                    disabled={locked}
                   >
                     ×
                   </button>
@@ -78,7 +80,7 @@ export function RegisterCardDialog({ card }: { card: CardRecord }) {
                   </p>
                 </div>
 
-                <RegisterCardForm card={card} onSuccess={() => setOpen(false)} />
+                <RegisterCardForm card={card} month={month} onLockChange={setLocked} onSuccess={() => setOpen(false)} />
               </div>
             </div>,
             document.body,

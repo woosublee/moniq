@@ -34,8 +34,9 @@ yarn-error.log*
 .env*
 !.env.example
 
-# local session/context
+# local session/context and isolated verification artifacts
 SESSION_CONTEXT.md
+/.superpowers/
 
 # supabase local temp
 supabase/.temp/

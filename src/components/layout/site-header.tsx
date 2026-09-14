@@ -1,61 +1,34 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-
-const navItems = [
-  { href: "/", label: "대시보드" },
-  { href: "/transactions/new", label: "가계부" },
-  { href: "/cards", label: "내 카드" },
-];
-
-const isActivePath = (pathname: string, href: string) => {
-  if (href === "/") {
-    return pathname === "/";
-  }
-
-  return pathname === href || pathname.startsWith(`${href}/`);
-};
+import { usePathname, useSearchParams } from "next/navigation";
+import { cardsHref, parseCardsQuery } from "@/features/cards/workspace-view";
+import { ledgerQueryEndMonth, ledgerQueryHref, parseLedgerQuery } from "@/features/ledger/workspace-view";
+import { currentSeoulMonth } from "@/lib/card-workspace/view-model";
 
 export function SiteHeader() {
   const pathname = usePathname();
-
-  return (
-    <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur-xl">
-      <div className="mx-auto flex w-full max-w-[1680px] flex-col gap-3 px-5 py-2.5 sm:px-8 lg:flex-row lg:items-center lg:justify-between lg:px-10">
-        <Link href="/" className="group flex w-fit items-center">
-          <Image
-            src="/logo.png"
-            alt="Moniq"
-            width={280}
-            height={96}
-            className="h-12 w-auto object-contain transition group-hover:opacity-80"
-            priority
-          />
-        </Link>
-
-        <nav className="flex gap-2 overflow-x-auto pb-1 text-sm font-medium lg:pb-0">
-          {navItems.map((item) => {
-            const active = isActivePath(pathname, item.href);
-
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                aria-current={active ? "page" : undefined}
-                className={
-                  active
-                    ? "shrink-0 rounded-full bg-slate-950 px-4 py-2 text-white shadow-sm"
-                    : "shrink-0 rounded-full border border-transparent px-4 py-2 text-slate-600 transition hover:border-slate-200 hover:bg-slate-100 hover:text-slate-950"
-                }
-              >
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
-      </div>
-    </header>
-  );
+  const params = useSearchParams();
+  const values = Object.fromEntries([...params.keys()].map(key => [key, params.getAll(key).length > 1 ? params.getAll(key) : params.get(key) ?? ""]));
+  const detailId = /^\/cards\/([^/]+)$/.exec(pathname)?.[1];
+  if (!Object.hasOwn(values, "card") && detailId && detailId !== "search") values.card = decodeURIComponent(detailId);
+  const state = parseLedgerQuery(values, currentSeoulMonth());
+  const ledger = ledgerQueryHref(state);
+  const cardState = parseCardsQuery({ month: ledgerQueryEndMonth(state), card: state.card }, currentSeoulMonth());
+  // Cross-section links use native history. The installed router's soft transition
+  // can replace the filtered ledger entry during a route-tree retry; Back must retain it.
+  const items = [
+    { href: ledger, label: "가계부", active: pathname === "/ledger" || pathname === "/transactions/new" },
+    { href: ledger.replace("/ledger", "/dashboard"), label: "통계", active: pathname === "/dashboard" },
+    { href: cardsHref(cardState), label: "카드", active: pathname === "/cards" || pathname.startsWith("/cards/") },
+  ];
+  return <>
+    <a className="skip-link" href="#main-content">본문으로 이동</a>
+    <header className="site-header"><div className="site-header-inner">
+      <Link className="site-brand" href="/ledger">Moniq</Link>
+      <nav className="site-desktop-nav" aria-label="주 메뉴">{items.map(item => <a key={item.label} href={item.href} aria-current={item.active ? "page" : undefined}>{item.label}</a>)}</nav>
+      <details className="site-more"><summary>메뉴</summary><nav aria-label="추가 메뉴"><Link href="/demo">데모 보기</Link><Link href="/auth/entry">로그인</Link></nav></details>
+    </div></header>
+    <nav className="site-bottom-nav" aria-label="모바일 주 메뉴">{items.map(item => <a key={item.label} href={item.href} aria-current={item.active ? "page" : undefined}>{item.label}</a>)}</nav>
+  </>;
 }

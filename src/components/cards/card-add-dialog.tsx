@@ -10,10 +10,13 @@ import type { CardRecord, UserCardRecord } from "@/features/cards/types";
 
 export function CardAddDialog({
   userCards,
+  month,
 }: {
   userCards: UserCardRecord[];
+  month?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const [locked, setLocked] = useState(false);
   const [query, setQuery] = useState("");
   const [cards, setCards] = useState<CardRecord[]>([]);
   const [selectedCard, setSelectedCard] = useState<CardRecord | null>(null);
@@ -65,7 +68,7 @@ export function CardAddDialog({
     }
 
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
+      if (event.key === "Escape" && !locked) {
         setOpen(false);
       }
     };
@@ -73,7 +76,7 @@ export function CardAddDialog({
     window.addEventListener("keydown", closeOnEscape);
 
     return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [open]);
+  }, [open, locked]);
 
   return (
     <>
@@ -89,7 +92,7 @@ export function CardAddDialog({
         ? createPortal(
             <div
               className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/35 px-4 py-8 backdrop-blur-sm"
-              onClick={() => setOpen(false)}
+              onClick={() => { if (!locked) setOpen(false); }}
             >
               <div
                 role="dialog"
@@ -108,9 +111,10 @@ export function CardAddDialog({
                     </div>
                     <button
                       type="button"
-                      onClick={() => setOpen(false)}
+                      onClick={() => { if (!locked) setOpen(false); }}
                       className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
                       aria-label="닫기"
+                      disabled={locked}
                     >
                       ×
                     </button>
@@ -118,6 +122,7 @@ export function CardAddDialog({
                   <input
                     type="text"
                     value={query}
+                    disabled={locked}
                     onChange={(event) => {
                       setQuery(event.target.value);
                       setSelectedCard(null);
@@ -151,6 +156,7 @@ export function CardAddDialog({
                             <button
                               key={card.id}
                               type="button"
+                              disabled={locked}
                               onClick={() => setSelectedCard(card)}
                               className={
                                 selected
@@ -170,7 +176,7 @@ export function CardAddDialog({
                                 </div>
                                 {registered ? (
                                   <span className="shrink-0 rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
-                                    추가됨
+                                    보유 중
                                   </span>
                                 ) : null}
                               </div>
@@ -183,15 +189,15 @@ export function CardAddDialog({
 
                   <div className="min-h-0 overflow-y-auto p-5">
                     {selectedCard ? (
-                      registeredCardIds.has(selectedCard.id) ? (
-                        <CardPreview card={selectedCard} registered />
-                      ) : (
                         <>
-                          <CardPreview card={selectedCard} />
+                          <CardPreview card={selectedCard} registered={registeredCardIds.has(selectedCard.id)} />
+                          {registeredCardIds.has(selectedCard.id) ? <p className="mt-3 text-sm text-slate-600">같은 상품의 다른 카드를 새로 등록합니다. 별칭으로 구분하며 기존 카드와 사용내역은 그대로 유지됩니다.</p> : null}
                           <div className="mt-5">
                             <RegisterCardForm
                               key={selectedCard.id}
                               card={selectedCard}
+                              month={month}
+                              onLockChange={setLocked}
                               onSuccess={() => {
                                 setSelectedCard(null);
                                 setOpen(false);
@@ -200,7 +206,6 @@ export function CardAddDialog({
                             />
                           </div>
                         </>
-                      )
                     ) : (
                       <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-sm text-slate-500">
                         왼쪽 목록에서 등록할 카드를 선택하세요.
@@ -239,7 +244,7 @@ function CardPreview({
         </div>
         {registered ? (
           <span className="shrink-0 rounded-md bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
-            추가됨
+            보유 중
           </span>
         ) : null}
       </div>

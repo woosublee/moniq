@@ -1,80 +1,26 @@
 import Link from "next/link";
-
 import { deleteUserCard, setDefaultUserCard } from "@/app/cards/actions";
+import { CardSupportBadge } from "@/components/cards/card-support-badge";
+import { LedgerMutationForm } from "@/components/transactions/ledger-request-fields";
+import { formatWon, getCardBenefitLabel } from "@/lib/card-workspace/view-model";
+import type { CardPerformanceSummary } from "@/features/card-benefits/types";
 import type { UserCardRecord } from "@/features/cards/types";
 
-export function UserCardsList({ cards }: { cards: UserCardRecord[] }) {
-  if (cards.length === 0) {
-    return (
-      <div className="border-y border-slate-200 px-3 py-8 text-sm text-slate-500">
-        <p className="font-semibold text-slate-950">아직 등록한 카드가 없어요.</p>
-        <p className="mt-1">카드를 등록하면 지출 입력 시 결제 카드를 바로 선택할 수 있습니다.</p>
-        <Link
-          href="/cards"
-          className="mt-4 inline-flex h-8 items-center justify-center rounded-md bg-slate-950 px-3 text-sm font-medium text-white transition hover:bg-slate-800"
-        >
-          카드 추가
-        </Link>
+export function UserCardsList({ cards, performanceSummaries = [], month, canMutate = false }: { cards: UserCardRecord[]; performanceSummaries?: CardPerformanceSummary[]; month?: string; canMutate?: boolean }) {
+  if (!cards.length) return <div className="workspace-empty"><p>아직 등록한 카드가 없어요.</p><Link href="/cards/search">카드 찾기</Link></div>;
+  const summaries = new Map(performanceSummaries.map(summary => [summary.userCard.id, summary]));
+  return <div className="managed-cards">{cards.map(card => {
+    const summary = summaries.get(card.id);
+    return <article className="managed-card" key={card.id}>
+      <h3>{card.card.issuer} {card.card.name}</h3>
+      <p>{card.alias || "별칭 없음"} · {card.card.card_type === "credit_card" ? "신용카드" : "체크카드"}{card.is_default ? " · 기본 카드" : ""}</p>
+      <CardSupportBadge status={card.card.benefit_support_status} card={card.card} />
+      <p>실적 {formatWon(summary?.eligibleSpendAmount)} · 혜택 {getCardBenefitLabel(summary)}</p>
+      {summary?.manualTotalMismatches?.length ? <p>수동 월 총액과 원장이 다릅니다. 상세에서 다시 확인해 주세요.</p> : null}
+      <div className="managed-card-actions"><Link href={`/cards/${card.id}${month ? `?month=${month}` : ""}`}>상세 보기</Link>
+        {canMutate ? <><LedgerMutationForm key={`default:${card.version}:${month}`} action={setDefaultUserCard.bind(null, card.id)} version={card.version} month={month}><button type="submit" disabled={card.is_default}>기본으로</button></LedgerMutationForm>
+          <LedgerMutationForm key={`archive:${card.version}:${month}`} action={deleteUserCard.bind(null, card.id)} version={card.version} month={month}><button type="submit">보관</button></LedgerMutationForm></> : null}
       </div>
-    );
-  }
-
-  return (
-    <div className="overflow-x-auto border-y border-slate-200 bg-white">
-      <div className="grid min-w-[640px] grid-cols-[minmax(0,1fr)_130px_96px_132px] gap-3 border-b border-slate-200 bg-slate-50/70 px-3 py-2 text-[11px] font-medium uppercase tracking-[0.06em] text-slate-500">
-        <span>카드</span>
-        <span className="text-center">종류</span>
-        <span className="text-center">상태</span>
-        <span className="text-center">관리</span>
-      </div>
-      <div className="divide-y divide-slate-100">
-        {cards.map((userCard) => (
-          <article
-            key={userCard.id}
-            className="grid min-w-[640px] grid-cols-[minmax(0,1fr)_130px_96px_132px] items-center gap-3 px-3 py-3 text-sm hover:bg-slate-50/70"
-          >
-            <div className="min-w-0">
-              <p className="truncate font-medium text-slate-950">
-                {userCard.card.issuer} {userCard.card.name}
-              </p>
-              <p className="mt-1 truncate text-slate-500">
-                {userCard.alias ? `별칭: ${userCard.alias}` : "별칭 없음"}
-              </p>
-            </div>
-            <span className="text-center text-slate-600">
-              {userCard.card.card_type === "credit_card" ? "신용카드" : "체크카드"}
-            </span>
-            <span className="text-center">
-              {userCard.is_default ? (
-                <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
-                  기본
-                </span>
-              ) : (
-                <span className="text-slate-400">-</span>
-              )}
-            </span>
-            <div className="flex justify-end gap-1 pr-2">
-              <form action={setDefaultUserCard.bind(null, userCard.id)}>
-                <button
-                  type="submit"
-                  disabled={userCard.is_default}
-                  className="inline-flex h-8 items-center justify-center rounded-md px-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-400"
-                >
-                  기본
-                </button>
-              </form>
-              <form action={deleteUserCard.bind(null, userCard.id)}>
-                <button
-                  type="submit"
-                  className="inline-flex h-8 items-center justify-center rounded-md px-2 text-sm font-medium text-rose-600 transition hover:bg-rose-50"
-                >
-                  삭제
-                </button>
-              </form>
-            </div>
-          </article>
-        ))}
-      </div>
-    </div>
-  );
+    </article>;
+  })}</div>;
 }

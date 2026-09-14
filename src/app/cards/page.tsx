@@ -1,47 +1,25 @@
+import { connection } from "next/server";
+import { redirect } from "next/navigation";
 import { CardAddDialog } from "@/components/cards/card-add-dialog";
-import { PageHeader } from "@/components/layout/page-header";
+import { CardWorkspaceView } from "@/components/cards/card-workspace";
 import { UserCardsList } from "@/components/cards/user-cards-list";
-import { getUserCards } from "@/lib/supabase/queries";
+import { cardsHref, parseCardsQuery, type CardsSearchParams } from "@/features/cards/workspace-view";
+import { getOwnerContext } from "@/lib/auth/owner";
+import { DEMO_OWNER_ID } from "@/lib/auth/owner-context";
+import { getCardWorkspace } from "@/lib/card-workspace/load";
+import { currentSeoulMonth } from "@/lib/card-workspace/view-model";
+import { demoWorkspaceMonth, getDemoCardWorkspace } from "@/lib/demo/card-workspace";
 
-export default async function CardsPage() {
-  const cards = await getUserCards();
-  const defaultCard = cards.find((card) => card.is_default);
-  const creditCards = cards.filter((card) => card.card.card_type === "credit_card").length;
-  const checkCards = cards.filter((card) => card.card.card_type === "check_card").length;
-
-  return (
-    <>
-      <PageHeader
-        eyebrow="내 카드"
-        title="내 카드를 관리하세요."
-        description="가계부 입력에 사용할 카드를 등록하고 기본 결제 카드를 정합니다."
-        actions={<CardAddDialog userCards={cards} />}
-      />
-
-      <section className="border-b border-slate-200 pb-3 text-sm text-slate-600">
-        <div className="flex flex-wrap gap-x-5 gap-y-2">
-          <span>
-            등록 <strong className="font-semibold text-slate-950">{cards.length}장</strong>
-          </span>
-          <span>
-            기본 카드 <strong className="font-semibold text-slate-950">{defaultCard ? `${defaultCard.card.issuer} ${defaultCard.card.name}${defaultCard.alias ? ` (${defaultCard.alias})` : ""}` : "없음"}</strong>
-          </span>
-          <span>
-            신용 <strong className="font-semibold text-slate-950">{creditCards}장</strong>
-          </span>
-          <span>
-            체크 <strong className="font-semibold text-slate-950">{checkCards}장</strong>
-          </span>
-        </div>
-      </section>
-
-      <section>
-        <div className="mb-2 flex items-center justify-between text-sm">
-          <p className="font-semibold text-slate-900">등록된 카드</p>
-          <span className="text-slate-500">{cards.length}장</span>
-        </div>
-        <UserCardsList cards={cards} />
-      </section>
-    </>
-  );
+export default async function CardsPage({ searchParams }: { searchParams: Promise<CardsSearchParams> }) {
+  await connection();
+  const owner = await getOwnerContext();
+  const synthetic = owner.ownerId === DEMO_OWNER_ID;
+  const params = await searchParams;
+  const state = parseCardsQuery(params, synthetic ? demoWorkspaceMonth : currentSeoulMonth());
+  if (params.month !== state.month || params.tab !== state.tab) redirect(cardsHref(state, { page: state.page }));
+  const workspace = synthetic ? getDemoCardWorkspace(state.month) : await getCardWorkspace(state.month);
+  const cards = workspace.inputs.cards.filter(card => !card.archived_at);
+  return <CardWorkspaceView workspace={workspace} state={state} canMutate={owner.canMutate} synthetic={synthetic}
+    actions={owner.canMutate ? <CardAddDialog key={state.month} userCards={cards} month={state.month} /> : undefined}
+    management={owner.canMutate ? <UserCardsList cards={cards} performanceSummaries={workspace.summaries} month={state.month} canMutate /> : undefined} />;
 }
